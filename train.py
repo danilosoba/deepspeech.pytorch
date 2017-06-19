@@ -225,6 +225,10 @@ def main():
 
             out = model(inputs)
             out = out.transpose(0, 1)  # TxNxH
+            ####
+            # Prints the output of the model in a sequence of probabilities of char for each audio...
+            print(out.size())
+            ####
 
             seq_length = out.size(0)
             sizes = Variable(input_percentages.mul_(int(seq_length)).int(), requires_grad=False)
