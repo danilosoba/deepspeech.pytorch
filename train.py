@@ -125,9 +125,6 @@ def main():
 
     with open(args.labels_path) as label_file:
         labels = str(''.join(json.load(label_file)))
-        ####
-        print(labels.encode('utf-8'))
-        ####
     audio_conf = dict(sample_rate=args.sample_rate,
                       window_size=args.window_size,
                       window_stride=args.window_stride,
@@ -214,6 +211,9 @@ def main():
             if i == len(train_loader):
                 break
             inputs, targets, input_percentages, target_sizes = data
+            ####
+            # We need to receive targets in the usual classification task way...
+            ####
             # measure data loading time
             data_time.update(time.time() - end)
             inputs = Variable(inputs, requires_grad=False)
