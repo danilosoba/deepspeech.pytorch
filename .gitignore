@@ -101,7 +101,6 @@ ENV/
 # deepspeech.pytorch-specific dirs
 models/
 data/*.csv
-!data/*si.csv
 data/*_dataset/
 
 # PyCharm

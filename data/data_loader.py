@@ -1,6 +1,5 @@
 import os
 from tempfile import NamedTemporaryFile
-import codecs
 
 import librosa
 import numpy as np

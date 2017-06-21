@@ -5,10 +5,10 @@ import shutil
 import tarfile
 import wget
 
-from utils import create_manifest
+from utils import create_manifest_timit
 
-parser = argparse.ArgumentParser(description='Processes and downloads an4.')
-parser.add_argument('--target_dir', default='an4_dataset/', help='Path to save dataset')
+parser = argparse.ArgumentParser(description='Processes timit.')
+parser.add_argument('--target_dir', default='timit_dataset/', help='Path to save dataset')
 parser.add_argument('--sample_rate', default=16000, type=int, help='Sample rate')
 args = parser.parse_args()
 
@@ -63,21 +63,29 @@ def _process_transcript(transcripts, x):
 
 
 def main():
-    root_path = 'an4/'
-    name = 'an4'
-    wget.download('http://www.speech.cs.cmu.edu/databases/an4/an4_raw.bigendian.tar.gz')
-    tar = tarfile.open('an4_raw.bigendian.tar.gz')
-    tar.extractall()
-    os.makedirs(args.target_dir)
-    _format_data(root_path, 'train', name, 'an4_clstk')
-    _format_data(root_path, 'test', name, 'an4test_clstk')
-    shutil.rmtree(root_path)
-    os.remove('an4_raw.bigendian.tar.gz')
+    #root_path = 'an4/'
+    name = 'timit'
+
+    #wget.download('http://www.speech.cs.cmu.edu/databases/an4/an4_raw.bigendian.tar.gz')
+    #tar = tarfile.open('an4_raw.bigendian.tar.gz')
+    #tar.extractall()
+    #os.makedirs(args.target_dir)
+    #_format_data(root_path, 'train', name, 'an4_clstk')
+    #_format_data(root_path, 'test', name, 'an4test_clstk')
+    #shutil.rmtree(root_path)
+    #os.remove('an4_raw.bigendian.tar.gz')
+
     train_path = args.target_dir + '/train/'
     test_path = args.target_dir + '/test/'
     print ('\n', 'Creating manifests...')
-    create_manifest(train_path, 'an4_train')
-    create_manifest(test_path, 'an4_val')
+    create_manifest_timit(train_path, 'timit_train')
+    create_manifest_timit(test_path, 'timit_val')
+
+    with open(name + "_train_manifest.csv", 'r') as f:
+        original_train_samples = f.readlines()
+        for x in range(len(original_train_samples)):
+            print(original_train_samples[x].split(',')[0])
+
 
 
 if __name__ == '__main__':
