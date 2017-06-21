@@ -37,11 +37,12 @@ def create_manifest(data_path, tag, ordered=True):
             update_progress(counter / float(size))
     print('\n')
 
-def create_manifest_timit(data_path, tag, ordered=True):
+def create_manifest2(data_path, tag, ordered=True):
     manifest_path = '%s_manifest.csv' % tag
     file_paths = []
     wav_files = [os.path.join(dirpath, f)
                  for dirpath, dirnames, files in os.walk(data_path)
+                 ### Modified from "wav" to "WAV"...
                  for f in fnmatch.filter(files, '*.WAV')]
     size = len(wav_files)
     counter = 0
@@ -55,6 +56,7 @@ def create_manifest_timit(data_path, tag, ordered=True):
     counter = 0
     with io.FileIO(manifest_path, "w") as file:
         for wav_path in file_paths:
+            ### Modified to remove a replace step...
             transcript_path = wav_path.replace('.WAV', '.TXT')
             sample = os.path.abspath(wav_path) + ',' + os.path.abspath(transcript_path) + '\n'
             file.write(sample.encode('utf-8'))

@@ -1,7 +1,7 @@
 import argparse
 import os
 
-from collections import defaultdict
+from collections import defaultdict, OrderedDict
 
 parser = argparse.ArgumentParser(description='Processes timit speaker.')
 parser.add_argument('--target_dir', default='timit_dataset/', help='Path to save dataset')
@@ -18,7 +18,7 @@ def process_manifests(lines, train_file, val_file, path):
             train_file.write(audio + "," + speaker + "\n")
         else:
             val_file.write(audio + "," + speaker + "\n")
-
+    #print(OrderedDict(speakers))
 
 def main():
     name = 'timit'
