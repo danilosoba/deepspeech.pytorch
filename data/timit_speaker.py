@@ -1,24 +1,27 @@
 import argparse
 import os
 
-from collections import defaultdict, OrderedDict
-
 parser = argparse.ArgumentParser(description='Processes timit speaker.')
 parser.add_argument('--target_dir', default='timit_dataset/', help='Path to save dataset')
 args = parser.parse_args()
 
 
 def process_manifests(lines, train_file, val_file, path):
-    speakers = defaultdict(int)
+    speakers = {}
+    label = 1
     for line in range(len(lines)):
         audio = lines[line].split(',')[0]
         speaker = audio.strip(os.path.abspath(path)).split('/')[1]
-        speakers[speaker] += 1
-        if speakers[speaker] % 5 != 4:
-            train_file.write(audio + "," + speaker + "\n")
+        if speaker in speakers:
+            speakers[speaker][1] += 1
         else:
-            val_file.write(audio + "," + speaker + "\n")
-    #print(OrderedDict(speakers))
+            speakers[speaker] =[label,1]
+            label += 1
+        if speakers[speaker][1] % 5 != 4:
+            train_file.write(audio + "," + str(speakers[speaker][0]) + "\n")
+        else:
+            val_file.write(audio + "," + str(speakers[speaker][0]) + "\n")
+
 
 def main():
     name = 'timit'
