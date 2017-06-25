@@ -30,8 +30,8 @@ def main():
     name = 'timit'
     train_path = args.target_dir + '/TRAIN/'
     test_path = args.target_dir + '/TEST/'
-    with open(name + "_train_manifest_speaker.csv", 'w') as train_file:
-        with open(name + "_val_manifest_speaker.csv", 'w') as val_file:
+    with open(name + "_train_manifest_redistributed.csv", 'w') as train_file:
+        with open(name + "_val_manifest_redistributed.csv", 'w') as val_file:
             with open(name + "_train_manifest.csv", 'r') as file:
                 lines = file.readlines()
                 process_manifests(lines, train_file, val_file, train_path)

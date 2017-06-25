@@ -12,7 +12,7 @@ parser.add_argument('--target_dir', default='mit_dataset/', help='Path to save d
 args = parser.parse_args()
 
 def create_manifest(data_path, tag, ordered=True):
-    manifest_path = '%s_manifest_speaker.csv' % tag
+    manifest_path = '%s_manifest.csv' % tag
     file_paths = []
     wav_files = [os.path.join(dirpath, f)
                  for dirpath, dirnames, files in os.walk(data_path)
