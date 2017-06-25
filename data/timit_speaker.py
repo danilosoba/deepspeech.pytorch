@@ -10,17 +10,20 @@ def process_manifests(lines, train_file, val_file, path):
     speakers = {}
     label = 1
     for line in range(len(lines)):
-        audio = lines[line].split(',')[0]
-        speaker = audio.strip(os.path.abspath(path)).split('/')[1]
-        if speaker in speakers:
-            speakers[speaker][1] += 1
+        speaker = lines[line].split(',')[0].strip(os.path.abspath(path)).split('/')[1]
+        if speaker not in speakers:
+            #speakers[speaker] = [label,1]
+            #label += 1
+            speakers[speaker] = 1
         else:
-            speakers[speaker] =[label,1]
-            label += 1
-        if speakers[speaker][1] % 5 != 4:
-            train_file.write(audio + "," + str(speakers[speaker][0]) + "\n")
+            #speakers[speaker][1] += 1
+            speakers[speaker] += 1
+        if speakers[speaker] % 5 != 4:
+            #train_file.write(audio + "," + str(speakers[speaker][0]) + "\n")
+            train_file.write(lines[line])
         else:
-            val_file.write(audio + "," + str(speakers[speaker][0]) + "\n")
+            #val_file.write(audio + "," + str(speakers[speaker][0]) + "\n")
+            val_file.write(lines[line])
 
 
 def main():
