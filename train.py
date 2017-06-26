@@ -5,6 +5,9 @@ import os
 import time
 
 import torch
+import torch.nn as nn
+import torch.nn.functional as F
+
 from torch.autograd import Variable
 from warpctc_pytorch import CTCLoss
 
@@ -12,6 +15,8 @@ from data.bucketing_sampler import BucketingSampler, SpectrogramDatasetWithLengt
 from data.data_loader import AudioDataLoader, SpectrogramDataset
 from decoder import ArgMaxDecoder
 from model import DeepSpeech, supported_rnns
+
+from libs.utils import flex_softmax
 
 parser = argparse.ArgumentParser(description='DeepSpeech training')
 parser.add_argument('--train_manifest', metavar='DIR',
@@ -235,6 +240,11 @@ def main():
             ####
             # Prints the output of the model in a sequence of probabilities of char for each audio...
             print(out.size())
+            #print(out[0][0])
+            #softmax_output = F.softmax(out).data # This DOES NOT what I want...
+            #softmax_output_alt = flex_softmax(out, axis=2).data # This is FINE!!! <<<===
+            #print(softmax_output[0][0])
+            #print(softmax_output_alt[0][0])
             ####
 
             seq_length = out.size(0)
