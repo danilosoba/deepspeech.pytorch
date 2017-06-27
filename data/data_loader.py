@@ -148,6 +148,17 @@ class SpectrogramDataset(Dataset, SpectrogramParser):
         with open(manifest_filepath) as f:
             ids = f.readlines()
         ids = [x.strip().split(',') for x in ids]
+        ######
+        if len(ids[0]) == 3:
+            self.speaker_labels = []
+            for x in ids:
+                self.speaker_labels.append(int(x[2]))
+                del x[2]
+            print("SPEAKER LABELS: " + str(len(self.speaker_labels)))
+        else:
+            self.speaker_labels = None
+            print("SPEAKER LABELS: NONE")
+        ######
         self.ids = ids
         self.size = len(ids)
         self.labels_map = dict([(labels[i], i) for i in range(len(labels))])
@@ -158,21 +169,21 @@ class SpectrogramDataset(Dataset, SpectrogramParser):
         audio_path, transcript_path = sample[0], sample[1]
         spect = self.parse_audio(audio_path)
         transcript = self.parse_transcript(transcript_path)
-        ####
+        ######
         # This is a good place to replace transcript...
         # transcripit should be a integer represent the class of the speaker...
-        ####
+        ######
         return spect, transcript
 
     def parse_transcript(self, transcript_path):
         with open(transcript_path, 'r') as transcript_file:
             transcript = transcript_file.read().replace('\n', '')
         transcript = list(filter(None, [self.labels_map.get(x) for x in list(transcript)]))
-        ####
+        ######
         #print(type(transcript))
         #print(transcript)
         # Transcript is a list of intergers...
-        ####
+        ######
         return transcript
 
     def __len__(self):

@@ -8,7 +8,7 @@ from utils import update_progress, _order_files
 
 
 parser = argparse.ArgumentParser(description='Processes mit.')
-parser.add_argument('--target_dir', default='mit_dataset/', help='Path to save dataset')
+parser.add_argument('--target_dir', default='mit_dataset/', help='Path to dataset')
 args = parser.parse_args()
 
 def create_manifest(data_path, tag, ordered=True):
@@ -41,7 +41,6 @@ def main():
     train_path = args.target_dir + '/Enroll_Session1/'
     test_path = args.target_dir + '/Enroll_Session2/'
     imposter_path = args.target_dir + '/Imposter/'
-
     print ('\n', 'Creating manifests...')
     create_manifest(train_path, 'mit_train')
     create_manifest(test_path, 'mit_val')

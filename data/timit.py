@@ -6,9 +6,8 @@ import os
 
 from utils import update_progress, _order_files
 
-
-parser = argparse.ArgumentParser(description='Processes timit.')
-parser.add_argument('--target_dir', default='timit_dataset/', help='Path to save dataset')
+parser = argparse.ArgumentParser(description='Processes timit for speech recognition task.')
+parser.add_argument('--target_dir', default='timit_dataset/', help='Path to dataset')
 args = parser.parse_args()
 
 def create_manifest(data_path, tag, ordered=True):
