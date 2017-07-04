@@ -13,7 +13,7 @@ from warpctc_pytorch import CTCLoss
 
 from data.bucketing_sampler import BucketingSampler, SpectrogramDatasetWithLength
 from data.data_loader import AudioDataLoader, SpectrogramDataset
-from decoder import ArgMaxDecoder
+from decoder import GreedyDecoder
 from model import DeepSpeech, supported_rnns
 
 from libs.utils import flex_softmax
@@ -158,7 +158,7 @@ def main():
     parameters = model.parameters()
     optimizer = torch.optim.SGD(parameters, lr=args.lr,
                                 momentum=args.momentum, nesterov=True)
-    decoder = ArgMaxDecoder(labels)
+    decoder = GreedyDecoder(labels)
 
     if args.continue_from:
         print("Loading checkpoint model %s" % args.continue_from)
@@ -328,7 +328,7 @@ def main():
             out = model(inputs)
             out = out.transpose(0, 1)  # TxNxH
             seq_length = out.size(0)
-            sizes = Variable(input_percentages.mul_(int(seq_length)).int(), volatile=True)
+            sizes = input_percentages.mul_(int(seq_length)).int()
 
             decoded_output = decoder.decode(out.data, sizes)
             target_strings = decoder.process_strings(decoder.convert_to_strings(split_targets))

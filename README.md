@@ -4,6 +4,16 @@
 Implementation of DeepSpeech2 using [Baidu Warp-CTC](https://github.com/baidu-research/warp-ctc).
 Creates a network based on the [DeepSpeech2](http://arxiv.org/pdf/1512.02595v1.pdf) architecture, trained with the CTC activation function.
 
+## Features
+
+* Train DeepSpeech, configurable RNN types and architectures with multi-gpu support.
+* Language model support using kenlm (WIP right now, currently no instructions to build a LM yet).
+* Multiple dataset downloaders, support for AN4, TED, Voxforge and Librispeech. Datasets can be merged, support for custom datasets included.
+* Noise injection for online training to improve noise robustness.
+* Audio augmentation to improve noise robustness.
+* Easy start/stop capabilities in the event of crash or hard stop during training.
+* Visdom/Tensorboard support for visualising training graphs.
+
 # Installation
 
 Several libraries are needed to be installed for training to work. I will assume that everything is being installed in
@@ -29,6 +39,16 @@ sudo apt-get install sox libsox-dev libsox-fmt-all
 git clone https://github.com/pytorch/audio.git
 cd audio
 python setup.py install
+```
+
+If you want decoding to support beam search with an optional language model, install pytorch-ctc:
+```
+git clone --recursive https://github.com/ryanleary/pytorch-ctc.git
+cd pytorch-ctc
+pip install -r requirements.txt
+
+# build the extension and install python package (requires gcc-5 or later)
+CC=/path/to/gcc-5 CXX=/path/to/g++-5 python setup.py install
 ```
 
 Finally:
@@ -219,6 +239,17 @@ An example script to output a prediction has been provided:
 ```
 python predict.py --model_path models/deepspeech.pth.tar --audio_path /path/to/audio.wav
 ```
+
+### Alternate Decoders
+By default, `test.py` and `predict.py` use a `GreedyDecoder` which picks the highest-likelihood output label at each timestep. Repeated and blank symbols are then filtered to give the final output.
+
+A beam search decoder can optionally be used with the installation of the `pytorch-ctc` library as described in the Installation section. The `test` and `predict` scripts have a `--decoder` argument. To use the beam decoder, add `--decoder beam`. The beam decoder enables additional decoding parameters:
+- **beam_width** how many beams to consider at each timestep
+- **lm_path** optional binary KenLM language model to use for decoding
+- **trie_path** trie describing lexicon. required if `lm_path` is supplied
+- **lm_alpha** weight for language model
+- **lm_beta1** bonus weight for words
+- **lm_beta2** bonus weight for in-vocabulary words
 
 ## Acknowledgements
 
