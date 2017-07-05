@@ -247,7 +247,7 @@ def main():
             torch.set_printoptions(profile="full")
             print("OUT SIZE: " + str(out.size()))
             print("INPUT PERCENTAGES MEAN: " + str(input_percentages.mean()))
-            #print(out[:,:,5])
+            #print(out[:,:,0])
             #print("SPEAKER LABELS: " + str(speaker_labels))
             #print(out[0][0])
             #softmax_output = F.softmax(out).data # This DOES NOT what I want...
@@ -348,7 +348,7 @@ def main():
             torch.set_printoptions(profile="full")
             print("OUT SIZE: " + str(out.size()))
             print("INPUT PERCENTAGES MEAN: " + str(input_percentages.mean()))
-            #print(out[:,:,5])
+            #print(out[:,:,0])
             #print("SPEAKER LABELS: " + str(speaker_labels))
             ########
 

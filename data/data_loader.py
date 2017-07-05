@@ -182,11 +182,6 @@ class SpectrogramDataset(Dataset, SpectrogramParser):
         with open(transcript_path, 'r') as transcript_file:
             transcript = transcript_file.read().replace('\n', '')
         transcript = list(filter(None, [self.labels_map.get(x) for x in list(transcript)]))
-        ########
-        #print(type(transcript))
-        #print(transcript)
-        # Transcript is a list of intergers...
-        ########
         return transcript
 
     def __len__(self):
