@@ -148,7 +148,7 @@ class SpectrogramDataset(Dataset, SpectrogramParser):
         with open(manifest_filepath) as f:
             ids = f.readlines()
         ids = [x.strip().split(',') for x in ids]
-        ######
+        ########
         if len(ids[0]) == 3:
             self.speaker_labels = []
             for x in ids:
@@ -158,7 +158,7 @@ class SpectrogramDataset(Dataset, SpectrogramParser):
         else:
             self.speaker_labels = None
             print("SPEAKER LABELS: NONE")
-        ######
+        ########
         self.ids = ids
         self.size = len(ids)
         self.labels_map = dict([(labels[i], i) for i in range(len(labels))])
@@ -169,21 +169,24 @@ class SpectrogramDataset(Dataset, SpectrogramParser):
         audio_path, transcript_path = sample[0], sample[1]
         spect = self.parse_audio(audio_path)
         transcript = self.parse_transcript(transcript_path)
-        ######
-        # This is a good place to replace transcript...
-        # transcripit should be a integer represent the class of the speaker...
-        ######
+        ########
+        speaker_label = self.speaker_labels[index]
+        """
         return spect, transcript
+        """
+        return spect, transcript, speaker_label
+        ########
+
 
     def parse_transcript(self, transcript_path):
         with open(transcript_path, 'r') as transcript_file:
             transcript = transcript_file.read().replace('\n', '')
         transcript = list(filter(None, [self.labels_map.get(x) for x in list(transcript)]))
-        ######
+        ########
         #print(type(transcript))
         #print(transcript)
         # Transcript is a list of intergers...
-        ######
+        ########
         return transcript
 
     def __len__(self):
@@ -202,18 +205,28 @@ def _collate_fn(batch):
     input_percentages = torch.FloatTensor(minibatch_size)
     target_sizes = torch.IntTensor(minibatch_size)
     targets = []
+    ########
+    speaker_labels_returned = torch.IntTensor(minibatch_size)
+    ########
     for x in range(minibatch_size):
         sample = batch[x]
         tensor = sample[0]
         target = sample[1]
+        ########
+        speaker_labels_returned[x] = sample[2]
+        ########
         seq_length = tensor.size(1)
         inputs[x][0].narrow(1, 0, seq_length).copy_(tensor)
         input_percentages[x] = seq_length / float(max_seqlength)
         target_sizes[x] = len(target)
         targets.extend(target)
     targets = torch.IntTensor(targets)
+    ########
+    """
     return inputs, targets, input_percentages, target_sizes
-
+    """
+    return inputs, targets, input_percentages, target_sizes, speaker_labels_returned
+    ########
 
 class AudioDataLoader(DataLoader):
     def __init__(self, *args, **kwargs):

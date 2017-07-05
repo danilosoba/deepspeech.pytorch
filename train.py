@@ -222,10 +222,14 @@ def main():
         for i, (data) in enumerate(train_loader, start=start_iter):
             if i == len(train_loader):
                 break
+
+            ########
+            """
             inputs, targets, input_percentages, target_sizes = data
-            ####
-            # We need to receive targets in the usual classification task way...
-            ####
+            """
+            inputs, targets, input_percentages, target_sizes, speaker_labels = data
+            ########
+
             # measure data loading time
             data_time.update(time.time() - end)
             inputs = Variable(inputs, requires_grad=False)
@@ -237,15 +241,20 @@ def main():
 
             out = model(inputs)
             out = out.transpose(0, 1)  # TxNxH
-            ####
+
+            ########
             # Prints the output of the model in a sequence of probabilities of char for each audio...
-            print(out.size())
+            torch.set_printoptions(profile="full")
+            print("OUT SIZE: " + str(out.size()))
+            print("INPUT PERCENTAGES MEAN: " + str(input_percentages.mean()))
+            #print(out[:,:,5])
+            #print("SPEAKER LABELS: " + str(speaker_labels))
             #print(out[0][0])
             #softmax_output = F.softmax(out).data # This DOES NOT what I want...
             #softmax_output_alt = flex_softmax(out, axis=2).data # This is FINE!!! <<<===
             #print(softmax_output[0][0])
             #print(softmax_output_alt[0][0])
-            ####
+            ########
 
             seq_length = out.size(0)
             sizes = Variable(input_percentages.mul_(int(seq_length)).int(), requires_grad=False)
@@ -264,12 +273,13 @@ def main():
             avg_loss += loss_value
             losses.update(loss_value, inputs.size(0))
 
-            ###### Cross Entropy Loss for a Sequence (Time Series) of Output?
+            ########
+            # Cross Entropy Loss for a Sequence (Time Series) of Output?
             #output = output.view(-1,29)
             #target = target.view(-1)
             #criterion = nn.CrossEntropyLoss(29)
             #loss = criterion(output,target)
-            ######
+            ########
 
             # compute gradient
             optimizer.zero_grad()
@@ -311,7 +321,13 @@ def main():
         total_cer, total_wer = 0, 0
         model.eval()
         for i, (data) in enumerate(test_loader):  # test
+
+            ########
+            """
             inputs, targets, input_percentages, target_sizes = data
+            """
+            inputs, targets, input_percentages, target_sizes, speaker_labels = data
+            ########
 
             inputs = Variable(inputs, volatile=True)
 
@@ -327,6 +343,15 @@ def main():
 
             out = model(inputs)
             out = out.transpose(0, 1)  # TxNxH
+
+            ########
+            torch.set_printoptions(profile="full")
+            print("OUT SIZE: " + str(out.size()))
+            print("INPUT PERCENTAGES MEAN: " + str(input_percentages.mean()))
+            #print(out[:,:,5])
+            #print("SPEAKER LABELS: " + str(speaker_labels))
+            ########
+
             seq_length = out.size(0)
             sizes = input_percentages.mul_(int(seq_length)).int()
 
