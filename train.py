@@ -303,7 +303,7 @@ def main():
             # Cross Entropy Loss for a Sequence (Time Series) of Output?
             #output = output.view(-1,29)
             #target = target.view(-1)
-            #criterion = nn.CrossEntropyLoss(29)
+            #criterion = nn.CrossEntropyLoss()
             #loss = criterion(output,target)
             ########
 
