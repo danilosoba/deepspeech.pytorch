@@ -167,6 +167,13 @@ class GreedyDecoder(Decoder):
         Returns:
             strings: sequences of the model's best guess for the transcription on inputs
         """
+
+        ########
+        """
         _, max_probs = torch.max(probs.transpose(0, 1), 2)
+        """
+        _, max_probs = torch.max(probs.transpose(0, 1), 2, keepdim=True)
+        ########
+
         strings = self.convert_to_strings(max_probs.view(max_probs.size(0), max_probs.size(1)), sizes)
         return self.process_strings(strings, remove_repetitions=True)
