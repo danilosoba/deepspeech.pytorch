@@ -99,7 +99,7 @@ class AverageMeter(object):
         self.avg = self.sum / self.count
 
 
-def main():
+def main(nnl=None):
     args = parser.parse_args()
     save_folder = args.save_folder
 
@@ -141,7 +141,9 @@ def main():
             print('Directory already exists.')
         else:
             raise
-    criterion = CTCLoss()
+    #criterion = CTCLoss()
+    criterion = nn.CrossEntropyLoss()
+
 
     with open(args.labels_path) as label_file:
         labels = str(''.join(json.load(label_file)))
@@ -270,6 +272,7 @@ def main():
             out = out.transpose(0, 1)  # TxNxH
 
             ########
+            speaker_labels = speaker_labels.cuda(async=True).long()
             new_out = torch.sum(out, 0)
             # Prints the output of the model in a sequence of probabilities of char for each audio...
             torch.set_printoptions(profile="full")
@@ -286,7 +289,7 @@ def main():
             seq_length = out.size(0)
             sizes = Variable(input_percentages.mul_(int(seq_length)).int(), requires_grad=False)
 
-            loss = criterion(out, targets, sizes, target_sizes)
+            loss = criterion(new_out, speaker_labels)
             loss = loss / inputs.size(0)  # average the loss by minibatch
 
             loss_sum = loss.data.sum()
@@ -347,12 +350,11 @@ def main():
         start_iter = 0  # Reset start iteration for next epoch
         total_cer, total_wer = 0, 0
         model.eval()
+        """
         for i, (data) in enumerate(test_loader):  # test
 
             ########
-            """
             inputs, targets, input_percentages, target_sizes = data
-            """
             inputs, targets, input_percentages, target_sizes, speaker_labels = data
             ########
 
@@ -394,6 +396,7 @@ def main():
             if args.cuda:
                 torch.cuda.synchronize()
             del out
+        """
         wer = total_wer / len(test_loader.dataset)
         cer = total_cer / len(test_loader.dataset)
         wer *= 100
