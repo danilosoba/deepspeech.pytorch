@@ -18,6 +18,7 @@ import time
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+import torchnet as tnt
 
 from torch.autograd import Variable
 from warpctc_pytorch import CTCLoss
@@ -143,7 +144,7 @@ def main(nnl=None):
             raise
     #criterion = CTCLoss()
     criterion = nn.CrossEntropyLoss()
-
+    classerr = tnt.meter.ClassErrorMeter(topk=[1, 5], accuracy=True)
 
     with open(args.labels_path) as label_file:
         labels = str(''.join(json.load(label_file)))
@@ -304,6 +305,8 @@ def main(nnl=None):
             losses.update(loss_value, inputs.size(0))
 
             ########
+            classerr.add(new_out.data, speaker_labels.data)
+            print(classerr.value()[0], classerr.value()[1])
             # Cross Entropy Loss for a Sequence (Time Series) of Output?
             #output = output.view(-1,29)
             #target = target.view(-1)
