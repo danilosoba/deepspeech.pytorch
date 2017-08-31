@@ -98,6 +98,8 @@ class DeepSpeech(nn.Module):
         num_classes = 48
         ########
 
+        ########
+        """
         self.conv = nn.Sequential(
             nn.Conv2d(1, 32, kernel_size=(41, 11), stride=(2, 2)),
             nn.BatchNorm2d(32),
@@ -111,6 +113,18 @@ class DeepSpeech(nn.Module):
         rnn_input_size = int(math.floor(rnn_input_size - 41) / 2 + 1)
         rnn_input_size = int(math.floor(rnn_input_size - 21) / 2 + 1)
         rnn_input_size *= 32
+        """
+        cnn_features = 672
+        self.conv = nn.Sequential(
+            nn.Conv2d(1, cnn_features, kernel_size=(161, 11), stride=(2, 2)),
+            nn.BatchNorm2d(cnn_features),
+            nn.Hardtanh(0, 20, inplace=True),
+        )
+        # Based on above convolutions and spectrogram size using conv formula (W - F + 2P)/ S+1
+        rnn_input_size = int(math.floor((sample_rate * window_size) / 2) + 1)
+        rnn_input_size = int(math.floor(rnn_input_size - 161) / 2 + 1)
+        rnn_input_size *= cnn_features
+        ########
 
         rnns = []
         rnn = BatchRNN(input_size=rnn_input_size, hidden_size=rnn_hidden_size, rnn_type=rnn_type,
