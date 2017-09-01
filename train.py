@@ -204,7 +204,7 @@ def main():
                                 momentum=args.momentum, nesterov=True)
 
     ########
-    scheduler = torch.optim.lr_scheduler.MultiStepLR(optimizer, milestones=[10, 200], gamma=0.2)
+    scheduler = torch.optim.lr_scheduler.MultiStepLR(optimizer, milestones=[100, 200], gamma=0.2)
     #scheduler = torch.optim.lr_scheduler.ExponentialLR(optimizer, gamma=0.99)
     ########
 
