@@ -204,8 +204,8 @@ def main():
                                 momentum=args.momentum, nesterov=True)
 
     ########
-    #scheduler = torch.optim.lr_scheduler.MultiStepLR(optimizer, milestones=[20, 150, 200, 250], gamma=0.2)
-    scheduler = torch.optim.lr_scheduler.ExponentialLR(optimizer, gamma=0.99)
+    scheduler = torch.optim.lr_scheduler.MultiStepLR(optimizer, milestones=[10, 200], gamma=0.2)
+    #scheduler = torch.optim.lr_scheduler.ExponentialLR(optimizer, gamma=0.99)
     ########
 
     ########
@@ -325,7 +325,7 @@ def main():
             new_out = out[-1]
             # Prints the output of the model in a sequence of probabilities of char for each audio...
             torch.set_printoptions(profile="full")
-            ######## print("OUT: " + str(out.size()), "NEW OUT:" + str(new_out.size()), "SPEAKER LABELS:" + str(speaker_labels.size()), "INPUT PERCENTAGES MEAN: " + str(input_percentages.mean()))
+            ########print("OUT: " + str(out.size()), "NEW OUT:" + str(new_out.size()), "SPEAKER LABELS:" + str(speaker_labels.size()), "INPUT PERCENTAGES MEAN: " + str(input_percentages.mean()))
             #print(out[:,:,0])
             #print("SPEAKER LABELS: " + str(speaker_labels))
             #print(out[0][0])
@@ -391,9 +391,9 @@ def main():
                     data_time=data_time, loss=losses))
                 """
                 print('Epoch: [{0}][{1}/{2}]\t'
-                      'Time {batch_time.val:.3f} ({batch_time.avg:.3f})\t'
-                      'Data {data_time.val:.3f} ({data_time.avg:.3f})\t'
-                      'Loss {loss.val:.4f} ({loss.avg:.4f})\t'
+                      #'Time {batch_time.val:.3f} ({batch_time.avg:.3f})\t'
+                      #'Data {data_time.val:.3f} ({data_time.avg:.3f})\t'
+                      #'Loss {loss.val:.4f} ({loss.avg:.4f})\t'
                       'Average CAR@1 {car1:.3f}\t'
                       'Average CAR@5 {car2:.3f}\t'
                       .format((epoch + 1), (i + 1), len(train_loader), batch_time=batch_time, data_time=data_time,
@@ -573,8 +573,6 @@ def main():
             torch.save(DeepSpeech.serialize(model, optimizer=optimizer, epoch=epoch, loss_results=loss_results,
                                             wer_results=wer_results, cer_results=cer_results),
                        file_path)
-        """
-        ########
 
         # anneal lr
         optim_state = optimizer.state_dict()
@@ -582,8 +580,6 @@ def main():
         optimizer.load_state_dict(optim_state)
         print('Learning rate annealed to: {lr:.6f}'.format(lr=optim_state['param_groups'][0]['lr']))
 
-        ########
-        """
         if best_wer is None or best_wer > wer:
             print("Found better validated model, saving to %s" % args.model_path)
             torch.save(DeepSpeech.serialize(model, optimizer=optimizer, epoch=epoch, loss_results=loss_results,
