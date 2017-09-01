@@ -114,7 +114,7 @@ class DeepSpeech(nn.Module):
         rnn_input_size = int(math.floor(rnn_input_size - 21) / 2 + 1)
         rnn_input_size *= 32
         """
-        cnn_features = 672
+        cnn_features = 768
         self.conv = nn.Sequential(
             nn.Conv2d(1, cnn_features, kernel_size=(161, 11), stride=(2, 2)),
             nn.BatchNorm2d(cnn_features),
