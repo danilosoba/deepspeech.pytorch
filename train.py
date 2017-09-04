@@ -80,10 +80,10 @@ parser.add_argument('--log_params', dest='log_params', action='store_true', help
 parser.add_argument('--no_bucketing', dest='no_bucketing', action='store_true',
                     help='Turn off bucketing and sample from dataset based on sequence length (smallest to largest)')
 ########
-parser.add_argument('--learning-rate-decay-rate', default=0.2, type=float,
-                    metavar='LRDR', help='learning rate decay rate')
-parser.add_argument('--learning-rate-decay-epochs', default=None, nargs='+', type=int,
-                    metavar='LRDE', help='learning rate decay epochs')
+parser.add_argument('--learning_rate_decay_rate', default=0.2, type=float, metavar='LRDR', help='learning rate decay rate')
+parser.add_argument('--learning_rate_decay_epochs', default=None, nargs='+', type=int, metavar='LRDE', help='learning rate decay epochs')
+parser.add_argument('--loss_type', default='reg', help='Type of the loss. reg|sum|full are supported')
+parser.add_argument('--cnn_features', default=400, type=int, help='Hidden size of RNNs')
 ########
 parser.set_defaults(cuda=False, silent=False, checkpoint=False, visdom=False, augment=False, tensorboard=False,
                     log_params=False, no_bucketing=False)
@@ -191,12 +191,24 @@ def main():
 
     rnn_type = args.rnn_type.lower()
     assert rnn_type in supported_rnns, "rnn_type should be either lstm, rnn or gru"
+    ########
+    """
     model = DeepSpeech(rnn_hidden_size=args.hidden_size,
                        nb_layers=args.hidden_layers,
                        labels=labels,
                        rnn_type=supported_rnns[rnn_type],
                        audio_conf=audio_conf,
-                       bidirectional=True)
+                       bidirectional=True,
+                       cnn_features=args.cnn_features)
+    """
+    model = DeepSpeech(rnn_hidden_size=args.hidden_size,
+                       nb_layers=args.hidden_layers,
+                       labels=labels,
+                       rnn_type=supported_rnns[rnn_type],
+                       audio_conf=audio_conf,
+                       bidirectional=True,
+                       cnn_features=args.cnn_features)
+    ########
 
     ########
     #print(list(model.rnns.modules()))
@@ -275,6 +287,15 @@ def main():
     avg_loss = 0
     start_epoch = 0
     start_iter = 0
+
+    best_train_accu = 0
+    best_train_accu_sum = 0
+    best_train_accu_sum_20 = 0
+    best_train_accu_sum_20_softmax = 0
+    best_test_accu = 0
+    best_test_accu_sum = 0
+    best_test_accu_sum_20 = 0
+    best_test_accu_sum_20_softmax = 0
     ########
 
     if args.cuda:
@@ -354,11 +375,17 @@ def main():
             ########
 
             ########
-            #loss_out = out[-1]; loss_speaker_labels = speaker_labels
-            #loss_out = torch.sum(out[20:], 0); loss_speaker_labels = speaker_labels
-            # Don't know if is ok!!! => loss_out = out.contiguous().view(-1,48); loss_speaker_labels = speaker_labels.repeat(out.size(0)) #speaker_labels = speaker_labels.expand(20, out.size(0))
-            # Don't know if is ok!!! => loss_out = out.contiguous().view(-1,48); loss_speaker_labels = speaker_labels.repeat(1, out.size(0)).squeeze() #speaker_labels = speaker_labels.expand(20, out.size(0))
-            loss_out = out.contiguous().view(-1,48)[20:]; loss_speaker_labels = speaker_labels.repeat(out.size(0),1).view(-1)[20:] #speaker_labels = speaker_labels.expand(20, out.size(0))
+            if args.loss_type == "reg":
+                loss_out = out[-1]; loss_speaker_labels = speaker_labels
+                #print("LOSS TYPE = REGULAR")
+            elif args.loss_type == "sum":
+                loss_out = torch.sum(out[20:], 0); loss_speaker_labels = speaker_labels
+                #print("LOSS TYPE = SUM")
+            elif args.loss_type == "full":
+                # Don't know if is ok!!! Don't use!!! => loss_out = out.contiguous().view(-1,48); loss_speaker_labels = speaker_labels.repeat(out.size(0)) #speaker_labels = speaker_labels.expand(20, out.size(0))
+                # Don't know if is ok!!! Don't use!!! => loss_out = out.contiguous().view(-1,48); loss_speaker_labels = speaker_labels.repeat(1, out.size(0)).squeeze() #speaker_labels = speaker_labels.expand(20, out.size(0))
+                loss_out = out.contiguous().view(-1,48)[20:]; loss_speaker_labels = speaker_labels.repeat(out.size(0),1).view(-1)[20:] #speaker_labels = speaker_labels.expand(20, out.size(0))
+                #print("LOSS TYPE = FULL")
             #print("LOSS_OUT: " + str(loss_out.size()), "SPEAKER LABELS:" + str(loss_speaker_labels.size()))
             loss = criterion(loss_out, loss_speaker_labels)
             ########
@@ -461,8 +488,13 @@ def main():
               'Average Loss {loss:.3f}\t'.format(
             epoch + 1, loss=avg_loss))
         """
-        print("\nFINAL EPOCH TRAINING RESULTS:", class_accu.value()[0], class_accu_sum.value()[0],
+        print("\nCURRENT EPOCH TRAINING RESULTS:", class_accu.value()[0], class_accu_sum.value()[0],
               class_accu_sum_20.value()[0], class_accu_sum_20_softmax.value()[0], "\n")
+        if (class_accu.value()[0] > best_train_accu): best_train_accu = class_accu.value()[0]
+        if (class_accu_sum.value()[0] > best_train_accu_sum): best_train_accu_sum = class_accu_sum.value()[0]
+        if (class_accu_sum_20.value()[0] > best_train_accu_sum_20): best_train_accu_sum_20 = class_accu_sum_20.value()[0]
+        if (class_accu_sum_20_softmax.value()[0] > best_train_accu_sum_20_softmax): best_train_accu_sum_20_softmax = class_accu_sum_20_softmax.value()[0]
+        print("\nBEST EPOCH TRAINING RESULTS:", best_train_accu, best_train_accu_sum, best_train_accu_sum_20, best_train_accu_sum_20_softmax, "\n")
         ########
 
         start_iter = 0  # Reset start iteration for next epoch
@@ -582,8 +614,13 @@ def main():
         ########
 
         ########
-        print("\nFINAL EPOCH TEST RESULTS:", class_accu.value()[0], class_accu_sum.value()[0],
+        print("\nCURRENT EPOCH TEST RESULTS:", class_accu.value()[0], class_accu_sum.value()[0],
               class_accu_sum_20.value()[0], class_accu_sum_20_softmax.value()[0], "\n")
+        if (class_accu.value()[0] > best_test_accu): best_test_accu = class_accu.value()[0]
+        if (class_accu_sum.value()[0] > best_test_accu_sum): best_test_accu_sum = class_accu_sum.value()[0]
+        if (class_accu_sum_20.value()[0] > best_test_accu_sum_20): best_test_accu_sum_20 = class_accu_sum_20.value()[0]
+        if (class_accu_sum_20_softmax.value()[0] > best_test_accu_sum_20_softmax): best_test_accu_sum_20_softmax = class_accu_sum_20_softmax.value()[0]
+        print("\nBEST EPOCH TEST RESULTS:", best_test_accu, best_test_accu_sum, best_test_accu_sum_20, best_test_accu_sum_20_softmax, "\n")
         ########
 
         ########

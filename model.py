@@ -74,14 +74,23 @@ class BatchRNN(nn.Module):
 
 
 class DeepSpeech(nn.Module):
+    ########
+    """
     def __init__(self, rnn_type=nn.LSTM, labels="abc", rnn_hidden_size=768, nb_layers=5, audio_conf=None,
                  bidirectional=True):
+    """
+    def __init__(self, rnn_type=nn.LSTM, labels="abc", rnn_hidden_size=768, nb_layers=5, audio_conf=None,
+                 bidirectional=True, cnn_features=768):
+    ########
         super(DeepSpeech, self).__init__()
 
         # model metadata needed for serialization/deserialization
         if audio_conf is None:
             audio_conf = {}
         self._version = '0.0.1'
+        ########
+        self._cnn_features = cnn_features
+        ########
         self._hidden_size = rnn_hidden_size
         self._hidden_layers = nb_layers
         self._rnn_type = rnn_type
@@ -114,7 +123,7 @@ class DeepSpeech(nn.Module):
         rnn_input_size = int(math.floor(rnn_input_size - 21) / 2 + 1)
         rnn_input_size *= 32
         """
-        cnn_features = 768
+        #cnn_features = rnn_hidden_size #768
         self.conv = nn.Sequential(
             nn.Conv2d(1, cnn_features, kernel_size=(161, 11), stride=(2, 2)),
             nn.BatchNorm2d(cnn_features),
