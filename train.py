@@ -296,6 +296,11 @@ def main():
     best_test_accu_sum = 0
     best_test_accu_sum_20 = 0
     best_test_accu_sum_20_softmax = 0
+    best_avg_loss = float("inf") # sys.float_info.max # 1000000
+    epoch_70 = None
+    epoch_90 = None
+    epoch_95 = None
+    epoch_99 = None
     ########
 
     if args.cuda:
@@ -488,13 +493,29 @@ def main():
               'Average Loss {loss:.3f}\t'.format(
             epoch + 1, loss=avg_loss))
         """
-        print("\nCURRENT EPOCH TRAINING RESULTS:", class_accu.value()[0], class_accu_sum.value()[0],
-              class_accu_sum_20.value()[0], class_accu_sum_20_softmax.value()[0], "\n")
-        if (class_accu.value()[0] > best_train_accu): best_train_accu = class_accu.value()[0]
-        if (class_accu_sum.value()[0] > best_train_accu_sum): best_train_accu_sum = class_accu_sum.value()[0]
-        if (class_accu_sum_20.value()[0] > best_train_accu_sum_20): best_train_accu_sum_20 = class_accu_sum_20.value()[0]
-        if (class_accu_sum_20_softmax.value()[0] > best_train_accu_sum_20_softmax): best_train_accu_sum_20_softmax = class_accu_sum_20_softmax.value()[0]
-        print("\nBEST EPOCH TRAINING RESULTS:", best_train_accu, best_train_accu_sum, best_train_accu_sum_20, best_train_accu_sum_20_softmax, "\n")
+
+        if (best_avg_loss > avg_loss): best_avg_loss = avg_loss
+
+        print("\nCURRENT EPOCH TRAINING RESULTS:\t", class_accu.value()[0], "\t", class_accu_sum.value()[0],"\t",
+              class_accu_sum_20.value()[0], "\t", class_accu_sum_20_softmax.value()[0], "\n")
+
+        if (best_train_accu < class_accu.value()[0]): best_train_accu = class_accu.value()[0]
+        if (best_train_accu_sum < class_accu_sum.value()[0]): best_train_accu_sum = class_accu_sum.value()[0]
+        if (best_train_accu_sum_20 < class_accu_sum_20.value()[0]): best_train_accu_sum_20 = class_accu_sum_20.value()[0]
+        if (best_train_accu_sum_20_softmax < class_accu_sum_20_softmax.value()[0]): best_train_accu_sum_20_softmax = class_accu_sum_20_softmax.value()[0]
+
+        get_70 = ((class_accu.value()[0] > 70) or (class_accu_sum.value()[0] > 70)
+                  or (class_accu_sum_20.value()[0] > 70) or (class_accu_sum_20_softmax.value()[0] > 70))
+        if ((epoch_70 is None) and (get_70 == True)): epoch_70 = epoch + 1
+        get_90 = ((class_accu.value()[0] > 90) or (class_accu_sum.value()[0] > 90)
+                  or (class_accu_sum_20.value()[0] > 90) or (class_accu_sum_20_softmax.value()[0] > 90))
+        if ((epoch_90 is None) and (get_90 == True)): epoch_90 = epoch + 1
+        get_95 = ((class_accu.value()[0] > 95) or (class_accu_sum.value()[0] > 95)
+                  or (class_accu_sum_20.value()[0] > 95) or (class_accu_sum_20_softmax.value()[0] > 95))
+        if ((epoch_95 is None) and (get_95 == True)): epoch_95 = epoch + 1
+        get_99 = ((class_accu.value()[0] > 99) or (class_accu_sum.value()[0] > 99)
+                  or (class_accu_sum_20.value()[0] > 99) or (class_accu_sum_20_softmax.value()[0] > 99))
+        if ((epoch_99 is None) and (get_99 == True)): epoch_99 = epoch + 1
         ########
 
         start_iter = 0  # Reset start iteration for next epoch
@@ -614,13 +635,17 @@ def main():
         ########
 
         ########
-        print("\nCURRENT EPOCH TEST RESULTS:", class_accu.value()[0], class_accu_sum.value()[0],
-              class_accu_sum_20.value()[0], class_accu_sum_20_softmax.value()[0], "\n")
-        if (class_accu.value()[0] > best_test_accu): best_test_accu = class_accu.value()[0]
-        if (class_accu_sum.value()[0] > best_test_accu_sum): best_test_accu_sum = class_accu_sum.value()[0]
-        if (class_accu_sum_20.value()[0] > best_test_accu_sum_20): best_test_accu_sum_20 = class_accu_sum_20.value()[0]
-        if (class_accu_sum_20_softmax.value()[0] > best_test_accu_sum_20_softmax): best_test_accu_sum_20_softmax = class_accu_sum_20_softmax.value()[0]
-        print("\nBEST EPOCH TEST RESULTS:", best_test_accu, best_test_accu_sum, best_test_accu_sum_20, best_test_accu_sum_20_softmax, "\n")
+        print("\nCURRENT EPOCH TEST RESULTS:\t", class_accu.value()[0], "\t", class_accu_sum.value()[0], "\t", class_accu_sum_20.value()[0], "\t", class_accu_sum_20_softmax.value()[0], "\n")
+
+        if (best_test_accu < class_accu.value()[0]): best_test_accu = class_accu.value()[0]
+        if (best_test_accu_sum < class_accu_sum.value()[0]): best_test_accu_sum = class_accu_sum.value()[0]
+        if (best_test_accu_sum_20 < class_accu_sum_20.value()[0]): best_test_accu_sum_20 = class_accu_sum_20.value()[0]
+        if (best_test_accu_sum_20_softmax < class_accu_sum_20_softmax.value()[0]): best_test_accu_sum_20_softmax = class_accu_sum_20_softmax.value()[0]
+
+        print("\nBEST EPOCH TRAINING RESULTS:\t", best_train_accu, "\t", best_train_accu_sum, "\t", best_train_accu_sum_20, "\t", best_train_accu_sum_20_softmax)
+        print("\nBEST EPOCH TEST RESULTS:\t", best_test_accu, "\t", best_test_accu_sum, "\t", best_test_accu_sum_20, "\t", best_test_accu_sum_20_softmax)
+        print("\nEPOCHS 70%, 90%, 95%, 99%:\t", epoch_70, "\t", epoch_90, "\t", epoch_95, "\t", epoch_99)
+        print("\nBEST AVERAGE LOSS:\t", best_avg_loss, "\n")
         ########
 
         ########
