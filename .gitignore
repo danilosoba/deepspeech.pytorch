@@ -105,3 +105,6 @@ data/*_dataset/
 
 # PyCharm
 .idea/
+
+# Added by dlm
+logs/

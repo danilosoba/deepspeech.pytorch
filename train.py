@@ -166,7 +166,9 @@ def main():
     criterion = nn.CrossEntropyLoss()
     class_accu = tnt.meter.ClassErrorMeter(topk=[1], accuracy=True)
     class_accu_sum = tnt.meter.ClassErrorMeter(topk=[1], accuracy=True)
+    class_accu_sum_10 = tnt.meter.ClassErrorMeter(topk=[1], accuracy=True)
     class_accu_sum_20 = tnt.meter.ClassErrorMeter(topk=[1], accuracy=True)
+    class_accu_sum_30 = tnt.meter.ClassErrorMeter(topk=[1], accuracy=True)
     class_accu_sum_20_softmax = tnt.meter.ClassErrorMeter(topk=[1], accuracy=True)
     ########
 
@@ -290,11 +292,15 @@ def main():
 
     best_train_accu = 0
     best_train_accu_sum = 0
+    best_train_accu_sum_10 = 0
     best_train_accu_sum_20 = 0
+    best_train_accu_sum_30 = 0
     best_train_accu_sum_20_softmax = 0
     best_test_accu = 0
     best_test_accu_sum = 0
+    best_test_accu_sum_10 = 0
     best_test_accu_sum_20 = 0
+    best_test_accu_sum_30 = 0
     best_test_accu_sum_20_softmax = 0
     best_avg_loss = float("inf") # sys.float_info.max # 1000000
     epoch_70 = None
@@ -320,7 +326,9 @@ def main():
         print('\nLEARNING RATE: {lr:.6f}'.format(lr=optim_state_now['param_groups'][0]['lr']))
         class_accu.reset()
         class_accu_sum.reset()
+        class_accu_sum_10.reset()
         class_accu_sum_20.reset()
+        class_accu_sum_30.reset()
         class_accu_sum_20_softmax.reset()
         ########
         model.train()
@@ -358,7 +366,7 @@ def main():
             speaker_labels = speaker_labels.cuda(async=True).long()
             # Prints the output of the model in a sequence of probabilities of char for each audio...
             torch.set_printoptions(profile="full")
-            ########print("LOSS_OUT: " + str(out.size()), "SPEAKER LABELS:" + str(speaker_labels.size()), "INPUT PERCENTAGES MEAN: " + str(input_percentages.min()))
+            ########print("OUT: " + str(out.size()), "SPEAKER LABELS:" + str(speaker_labels.size()), "INPUT PERCENTAGES MEAN: " + str(input_percentages.mean()))
             """
             seq_length = out.size(0)
             sizes = Variable(input_percentages.mul_(int(seq_length)).int(), requires_grad=False)
@@ -384,12 +392,12 @@ def main():
                 loss_out = out[-1]; loss_speaker_labels = speaker_labels
                 #print("LOSS TYPE = REGULAR")
             elif args.loss_type == "sum":
-                loss_out = torch.sum(out[20:], 0); loss_speaker_labels = speaker_labels
+                loss_out = torch.sum(out[10:], 0); loss_speaker_labels = speaker_labels
                 #print("LOSS TYPE = SUM")
             elif args.loss_type == "full":
                 # Don't know if is ok!!! Don't use!!! => loss_out = out.contiguous().view(-1,48); loss_speaker_labels = speaker_labels.repeat(out.size(0)) #speaker_labels = speaker_labels.expand(20, out.size(0))
                 # Don't know if is ok!!! Don't use!!! => loss_out = out.contiguous().view(-1,48); loss_speaker_labels = speaker_labels.repeat(1, out.size(0)).squeeze() #speaker_labels = speaker_labels.expand(20, out.size(0))
-                loss_out = out.contiguous().view(-1,48)[20:]; loss_speaker_labels = speaker_labels.repeat(out.size(0),1).view(-1)[20:] #speaker_labels = speaker_labels.expand(20, out.size(0))
+                loss_out = out.contiguous().view(-1,48)[10:]; loss_speaker_labels = speaker_labels.repeat(out.size(0),1).view(-1)[10:] #speaker_labels = speaker_labels.expand(10, out.size(0))
                 #print("LOSS TYPE = FULL")
             #print("LOSS_OUT: " + str(loss_out.size()), "SPEAKER LABELS:" + str(loss_speaker_labels.size()))
             loss = criterion(loss_out, loss_speaker_labels)
@@ -415,6 +423,10 @@ def main():
             class_accu_sum.add(accu_out1.data, speaker_labels.data)
             accu_out2 = torch.sum(out[20:], 0)
             class_accu_sum_20.add(accu_out2.data, speaker_labels.data)
+            accu_out4 = torch.sum(out[10:], 0)
+            class_accu_sum_10.add(accu_out4.data, speaker_labels.data)
+            accu_out5 = torch.sum(out[30:], 0)
+            class_accu_sum_30.add(accu_out5.data, speaker_labels.data)
             accu_out3 = torch.sum(flex_softmax(out[20:], axis=2), 0)
             class_accu_sum_20_softmax.add(accu_out3.data, speaker_labels.data)
             #print(classaccu.value()[0], classaccu.value()[1])
@@ -456,11 +468,14 @@ def main():
                       'Loss {loss.val:.4f} ({loss.avg:.4f})\t'
                       'Average CAR {car:.3f}\t'
                       'Average CAR_SUM {car_sum:.3f}\t'
+                      'Average CAR_SUM_10 {car_sum_10:.3f}\t'
                       'Average CAR_SUM_20 {car_sum_20:.3f}\t'
+                      'Average CAR_SUM_30 {car_sum_30:.3f}\t'
                       'Average CAR_SUM_20_SOFTMAX {car_sum_20_softmax:.3f}\t'
                       .format((epoch + 1), (i + 1), len(train_loader), batch_time=batch_time, data_time=data_time,
                               loss=losses, car=class_accu.value()[0], car_sum=class_accu_sum.value()[0],
-                              car_sum_20=class_accu_sum_20.value()[0], car_sum_20_softmax=class_accu_sum_20_softmax.value()[0]))
+                              car_sum_20=class_accu_sum_20.value()[0], car_sum_10=class_accu_sum_10.value()[0],
+                              car_sum_30=class_accu_sum_30.value()[0], car_sum_20_softmax=class_accu_sum_20_softmax.value()[0]))
                 ########
 
             ########
@@ -497,24 +512,31 @@ def main():
         if (best_avg_loss > avg_loss): best_avg_loss = avg_loss
 
         print("\nCURRENT EPOCH TRAINING RESULTS:\t", class_accu.value()[0], "\t", class_accu_sum.value()[0],"\t",
-              class_accu_sum_20.value()[0], "\t", class_accu_sum_20_softmax.value()[0], "\n")
+              class_accu_sum_10.value()[0], class_accu_sum_20.value()[0], class_accu_sum_30.value()[0],
+              "\t", class_accu_sum_20_softmax.value()[0], "\n")
 
         if (best_train_accu < class_accu.value()[0]): best_train_accu = class_accu.value()[0]
         if (best_train_accu_sum < class_accu_sum.value()[0]): best_train_accu_sum = class_accu_sum.value()[0]
+        if (best_train_accu_sum_10 < class_accu_sum_10.value()[0]): best_train_accu_sum_10 = class_accu_sum_10.value()[0]
         if (best_train_accu_sum_20 < class_accu_sum_20.value()[0]): best_train_accu_sum_20 = class_accu_sum_20.value()[0]
+        if (best_train_accu_sum_30 < class_accu_sum_30.value()[0]): best_train_accu_sum_30 = class_accu_sum_30.value()[0]
         if (best_train_accu_sum_20_softmax < class_accu_sum_20_softmax.value()[0]): best_train_accu_sum_20_softmax = class_accu_sum_20_softmax.value()[0]
 
         get_70 = ((class_accu.value()[0] > 70) or (class_accu_sum.value()[0] > 70)
-                  or (class_accu_sum_20.value()[0] > 70) or (class_accu_sum_20_softmax.value()[0] > 70))
+                  or (class_accu_sum_10.value()[0] > 70) or (class_accu_sum_20.value()[0] > 70)
+                  or (class_accu_sum_30.value()[0] > 70) or (class_accu_sum_20_softmax.value()[0] > 70))
         if ((epoch_70 is None) and (get_70 == True)): epoch_70 = epoch + 1
         get_90 = ((class_accu.value()[0] > 90) or (class_accu_sum.value()[0] > 90)
-                  or (class_accu_sum_20.value()[0] > 90) or (class_accu_sum_20_softmax.value()[0] > 90))
+                  or (class_accu_sum_10.value()[0] > 90) or (class_accu_sum_20.value()[0] > 90)
+                  or (class_accu_sum_30.value()[0] > 90) or (class_accu_sum_20_softmax.value()[0] > 90))
         if ((epoch_90 is None) and (get_90 == True)): epoch_90 = epoch + 1
         get_95 = ((class_accu.value()[0] > 95) or (class_accu_sum.value()[0] > 95)
-                  or (class_accu_sum_20.value()[0] > 95) or (class_accu_sum_20_softmax.value()[0] > 95))
+                  or (class_accu_sum_10.value()[0] > 95) or (class_accu_sum_20.value()[0] > 95)
+                  or (class_accu_sum_30.value()[0] > 95) or (class_accu_sum_20_softmax.value()[0] > 95))
         if ((epoch_95 is None) and (get_95 == True)): epoch_95 = epoch + 1
         get_99 = ((class_accu.value()[0] > 99) or (class_accu_sum.value()[0] > 99)
-                  or (class_accu_sum_20.value()[0] > 99) or (class_accu_sum_20_softmax.value()[0] > 99))
+                  or (class_accu_sum_10.value()[0] > 99) or (class_accu_sum_20.value()[0] > 99)
+                  or (class_accu_sum_30.value()[0] > 99) or (class_accu_sum_20_softmax.value()[0] > 99))
         if ((epoch_99 is None) and (get_99 == True)): epoch_99 = epoch + 1
         ########
 
@@ -525,7 +547,9 @@ def main():
         ########
         class_accu.reset()
         class_accu_sum.reset()
+        class_accu_sum_10.reset()
         class_accu_sum_20.reset()
+        class_accu_sum_30.reset()
         class_accu_sum_20_softmax.reset()
         ########
 
@@ -580,6 +604,10 @@ def main():
             class_accu_sum.add(accu_out1.data, speaker_labels.data)
             accu_out2 = torch.sum(out[20:], 0)
             class_accu_sum_20.add(accu_out2.data, speaker_labels.data)
+            accu_out4 = torch.sum(out[10:], 0)
+            class_accu_sum_10.add(accu_out4.data, speaker_labels.data)
+            accu_out5 = torch.sum(out[30:], 0)
+            class_accu_sum_30.add(accu_out5.data, speaker_labels.data)
             accu_out3 = torch.sum(flex_softmax(out[20:], axis=2), 0)
             class_accu_sum_20_softmax.add(accu_out3.data, speaker_labels.data)
 
@@ -592,10 +620,13 @@ def main():
             print('Validation Summary Epoch: [{0}]\t'
                   'Average CAR {car:.3f}\t'
                   'Average CAR_SUM {car_sum:.3f}\t'
+                  'Average CAR_SUM_10 {car_sum_10:.3f}\t'
                   'Average CAR_SUM_20 {car_sum_20:.3f}\t'
+                  'Average CAR_SUM_30 {car_sum_30:.3f}\t'
                   'Average CAR_SUM_20_SOFTMAX {car_sum_20_softmax:.3f}\t'
                   .format(epoch + 1, car=class_accu.value()[0], car_sum=class_accu_sum.value()[0],
-                          car_sum_20=class_accu_sum_20.value()[0], car_sum_20_softmax=class_accu_sum_20_softmax.value()[0]))
+                          car_sum_20=class_accu_sum_20.value()[0], car_sum_10=class_accu_sum_10.value()[0],
+                          car_sum_30=class_accu_sum_30.value()[0], car_sum_20_softmax=class_accu_sum_20_softmax.value()[0]))
             """
             seq_length = out.size(0)
             sizes = input_percentages.mul_(int(seq_length)).int()            
@@ -635,15 +666,23 @@ def main():
         ########
 
         ########
-        print("\nCURRENT EPOCH TEST RESULTS:\t", class_accu.value()[0], "\t", class_accu_sum.value()[0], "\t", class_accu_sum_20.value()[0], "\t", class_accu_sum_20_softmax.value()[0], "\n")
+        print("\nCURRENT EPOCH TEST RESULTS:\t", class_accu.value()[0], "\t", class_accu_sum.value()[0],
+              "\t", class_accu_sum_10.value()[0], "\t", class_accu_sum_20.value()[0],
+              "\t", class_accu_sum_30.value()[0], "\t", class_accu_sum_20_softmax.value()[0], "\n")
 
         if (best_test_accu < class_accu.value()[0]): best_test_accu = class_accu.value()[0]
         if (best_test_accu_sum < class_accu_sum.value()[0]): best_test_accu_sum = class_accu_sum.value()[0]
+        if (best_test_accu_sum_10 < class_accu_sum_10.value()[0]): best_test_accu_sum_10 = class_accu_sum_10.value()[0]
         if (best_test_accu_sum_20 < class_accu_sum_20.value()[0]): best_test_accu_sum_20 = class_accu_sum_20.value()[0]
+        if (best_test_accu_sum_30 < class_accu_sum_30.value()[0]): best_test_accu_sum_30 = class_accu_sum_30.value()[0]
         if (best_test_accu_sum_20_softmax < class_accu_sum_20_softmax.value()[0]): best_test_accu_sum_20_softmax = class_accu_sum_20_softmax.value()[0]
 
-        print("\nBEST EPOCH TRAINING RESULTS:\t", best_train_accu, "\t", best_train_accu_sum, "\t", best_train_accu_sum_20, "\t", best_train_accu_sum_20_softmax)
-        print("\nBEST EPOCH TEST RESULTS:\t", best_test_accu, "\t", best_test_accu_sum, "\t", best_test_accu_sum_20, "\t", best_test_accu_sum_20_softmax)
+        print("\nBEST EPOCH TRAINING RESULTS:\t", best_train_accu, "\t", best_train_accu_sum,
+              "\t", best_train_accu_sum_10, "\t", best_train_accu_sum_20,
+              "\t", best_train_accu_sum_30, "\t", best_train_accu_sum_20_softmax)
+        print("\nBEST EPOCH TEST RESULTS:\t", best_test_accu, "\t", best_test_accu_sum,
+              "\t", best_test_accu_sum_10, "\t", best_test_accu_sum_20,
+              "\t", best_test_accu_sum_30, "\t", best_test_accu_sum_20_softmax)
         print("\nEPOCHS 70%, 90%, 95%, 99%:\t", epoch_70, "\t", epoch_90, "\t", epoch_95, "\t", epoch_99)
         print("\nBEST AVERAGE LOSS:\t", best_avg_loss, "\n")
         ########

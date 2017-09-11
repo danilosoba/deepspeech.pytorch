@@ -124,11 +124,22 @@ class DeepSpeech(nn.Module):
         rnn_input_size *= 32
         """
         #cnn_features = rnn_hidden_size #768
+
+        ########
+        """
         self.conv = nn.Sequential(
             nn.Conv2d(1, cnn_features, kernel_size=(161, 11), stride=(2, 2)),
             nn.BatchNorm2d(cnn_features),
             nn.Hardtanh(0, 20, inplace=True),
         )
+        """
+        self.conv = nn.Sequential(
+            nn.Conv2d(1, cnn_features, kernel_size=(161, 5), stride=(1, 1)),
+            nn.BatchNorm2d(cnn_features),
+            nn.Hardtanh(0, 20, inplace=True),
+        )
+        ########
+
         # Based on above convolutions and spectrogram size using conv formula (W - F + 2P)/ S+1
         rnn_input_size = int(math.floor((sample_rate * window_size) / 2) + 1)
         rnn_input_size = int(math.floor(rnn_input_size - 161) / 2 + 1)
