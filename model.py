@@ -80,7 +80,7 @@ class DeepSpeech(nn.Module):
                  bidirectional=True):
     """
     def __init__(self, rnn_type=nn.LSTM, labels="abc", rnn_hidden_size=768, nb_layers=5, audio_conf=None,
-                 bidirectional=True, cnn_features=768):
+                 bidirectional=True, cnn_features=768, kernel=11, stride=2):
     ########
         super(DeepSpeech, self).__init__()
 
@@ -90,6 +90,8 @@ class DeepSpeech(nn.Module):
         self._version = '0.0.1'
         ########
         self._cnn_features = cnn_features
+        self._kernel = kernel
+        self._stride = stride
         ########
         self._hidden_size = rnn_hidden_size
         self._hidden_layers = nb_layers
@@ -134,7 +136,7 @@ class DeepSpeech(nn.Module):
         )
         """
         self.conv = nn.Sequential(
-            nn.Conv2d(1, cnn_features, kernel_size=(161, 5), stride=(1, 1)),
+            nn.Conv2d(1, cnn_features, kernel_size=(161, kernel), stride=(stride, stride)),
             nn.BatchNorm2d(cnn_features),
             nn.Hardtanh(0, 20, inplace=True),
         )
