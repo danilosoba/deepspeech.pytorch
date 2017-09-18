@@ -298,24 +298,24 @@ def main():
 
     best_train_accu = 0
     best_train_accu_sum = 0
-    best_train_accu_sum_100 = 0
-    best_train_accu_sum_200 = 0
-    best_train_accu_sum_300 = 0
-    best_train_accu_sum_400 = 0
+    best_train_accu_sum_120 = 0
+    best_train_accu_sum_240 = 0
+    best_train_accu_sum_360 = 0
+    best_train_accu_sum_480 = 0
     best_test_accu = 0
     best_test_accu_sum = 0
-    best_test_accu_sum_100 = 0
-    best_test_accu_sum_200 = 0
-    best_test_accu_sum_300 = 0
-    best_test_accu_sum_400 = 0
+    best_test_accu_sum_120 = 0
+    best_test_accu_sum_240 = 0
+    best_test_accu_sum_360 = 0
+    best_test_accu_sum_480 = 0
     best_avg_loss = float("inf") # sys.float_info.max # 1000000
     epoch_70 = None
     epoch_90 = None
     epoch_95 = None
     epoch_99 = None
 
-    loss_begin = int(args.crop_begin/(10*args.stride))
-    loss_end = -int(args.crop_end/(10*args.stride)) or None
+    loss_begin = round(args.crop_begin/(10*args.stride))
+    loss_end = -round(args.crop_end/(10*args.stride)) or None
     print("LOSS BEGIN:", loss_begin)
     print("LOSS END:", loss_end)
     ########
@@ -403,10 +403,10 @@ def main():
                 #loss_out = out[-1]; loss_speaker_labels = speaker_labels
                 loss_out = out[round(out.size(0)/2)]; loss_speaker_labels = speaker_labels
                 #print("LOSS TYPE = REGULAR")
-            elif args.loss_type == "reg2":
-                loss_out = out[round(out.size(0)/3)] + out[2*round(out.size(0)/3)]; loss_speaker_labels = speaker_labels
-                #loss_out = out[round(out.size(0)/2)]; loss_speaker_labels = speaker_labels
-                #print("LOSS TYPE = REGULAR-2")
+            #elif args.loss_type == "reg2":
+            #    loss_out = out[round(out.size(0)/3)] + out[2*round(out.size(0)/3)]; loss_speaker_labels = speaker_labels
+            #    #loss_out = out[round(out.size(0)/2)]; loss_speaker_labels = speaker_labels
+            #    #print("LOSS TYPE = REGULAR-2")
             elif args.loss_type == "sum":
                 loss_out = torch.sum(out[loss_begin:loss_end], 0); loss_speaker_labels = speaker_labels
                 #print("LOSS TYPE = SUM")
@@ -435,13 +435,22 @@ def main():
             ########
             if args.stride == 1: multiplier = 6
             if args.stride == 2: multiplier = 3
+            if args.stride == 3: multiplier = 2
+            if args.stride == 4: multiplier = 1 #(Should be 1.5...)
+            if args.stride == 5: multiplier = 1 #(Should be 1.25...)
+
             class_accu.add(out[round(out.size(0)/2)].data, speaker_labels.data)
-            #class_accu.add(out[round(out.size(0)/3)].data + out[2*round(out.size(0)/3)].data, speaker_labels.data)
             class_accu_sum.add(torch.sum(out, 0).data, speaker_labels.data)
+
             class_accu_sum_120.add(torch.sum(out[1*multiplier:-1*multiplier], 0).data, speaker_labels.data)
             class_accu_sum_240.add(torch.sum(out[2*multiplier:-2*multiplier], 0).data, speaker_labels.data)
             class_accu_sum_360.add(torch.sum(out[3*multiplier:-3*multiplier], 0).data, speaker_labels.data)
             class_accu_sum_480.add(torch.sum(out[4*multiplier:-4*multiplier], 0).data, speaker_labels.data)
+            #class_accu_sum_120.add(torch.sum(out[round(out.size(0)/2)-1*multiplier:round(out.size(0)/2)+1*multiplier], 0).data, speaker_labels.data)
+            #class_accu_sum_240.add(torch.sum(out[round(out.size(0)/2)-2*multiplier:round(out.size(0)/2)+2*multiplier], 0).data, speaker_labels.data)
+            #class_accu_sum_360.add(torch.sum(out[round(out.size(0)/2)-3*multiplier:round(out.size(0)/2)+3*multiplier], 0).data, speaker_labels.data)
+            #class_accu_sum_480.add(torch.sum(out[round(out.size(0)/2)-4*multiplier:round(out.size(0)/2)+4*multiplier], 0).data, speaker_labels.data)
+
             #accu_out3 = torch.sum(flex_softmax(out[20:], axis=2), 0)
             #print(classaccu.value()[0], classaccu.value()[1])
             # Cross Entropy Loss for a Sequence (Time Series) of Output?
@@ -530,10 +539,10 @@ def main():
 
         if (best_train_accu < class_accu.value()[0]): best_train_accu = class_accu.value()[0]
         if (best_train_accu_sum < class_accu_sum.value()[0]): best_train_accu_sum = class_accu_sum.value()[0]
-        if (best_train_accu_sum_100 < class_accu_sum_120.value()[0]): best_train_accu_sum_100 = class_accu_sum_120.value()[0]
-        if (best_train_accu_sum_200 < class_accu_sum_240.value()[0]): best_train_accu_sum_200 = class_accu_sum_240.value()[0]
-        if (best_train_accu_sum_300 < class_accu_sum_360.value()[0]): best_train_accu_sum_300 = class_accu_sum_360.value()[0]
-        if (best_train_accu_sum_400 < class_accu_sum_480.value()[0]): best_train_accu_sum_400 = class_accu_sum_480.value()[0]
+        if (best_train_accu_sum_120 < class_accu_sum_120.value()[0]): best_train_accu_sum_120 = class_accu_sum_120.value()[0]
+        if (best_train_accu_sum_240 < class_accu_sum_240.value()[0]): best_train_accu_sum_240 = class_accu_sum_240.value()[0]
+        if (best_train_accu_sum_360 < class_accu_sum_360.value()[0]): best_train_accu_sum_360 = class_accu_sum_360.value()[0]
+        if (best_train_accu_sum_480 < class_accu_sum_480.value()[0]): best_train_accu_sum_480 = class_accu_sum_480.value()[0]
 
         get_70 = ((class_accu.value()[0] > 70) or (class_accu_sum.value()[0] > 70)
                   or (class_accu_sum_120.value()[0] > 70) or (class_accu_sum_240.value()[0] > 70)
@@ -613,13 +622,22 @@ def main():
             ########
             if args.stride == 1: multiplier = 6
             if args.stride == 2: multiplier = 3
+            if args.stride == 3: multiplier = 2
+            if args.stride == 4: multiplier = 1 #(Should be 1.5...)
+            if args.stride == 5: multiplier = 1 #(Should be 1.25...)
+
             class_accu.add(out[round(out.size(0)/2)].data, speaker_labels.data)
-            #class_accu.add(out[round(out.size(0)/3)].data + out[2*round(out.size(0)/3)].data, speaker_labels.data)
             class_accu_sum.add(torch.sum(out, 0).data, speaker_labels.data)
+
             class_accu_sum_120.add(torch.sum(out[1*multiplier:-1*multiplier], 0).data, speaker_labels.data)
             class_accu_sum_240.add(torch.sum(out[2*multiplier:-2*multiplier], 0).data, speaker_labels.data)
             class_accu_sum_360.add(torch.sum(out[3*multiplier:-3*multiplier], 0).data, speaker_labels.data)
             class_accu_sum_480.add(torch.sum(out[4*multiplier:-4*multiplier], 0).data, speaker_labels.data)
+            #class_accu_sum_120.add(torch.sum(out[round(out.size(0)/2)-1*multiplier:round(out.size(0)/2)+1*multiplier], 0).data, speaker_labels.data)
+            #class_accu_sum_240.add(torch.sum(out[round(out.size(0)/2)-2*multiplier:round(out.size(0)/2)+2*multiplier], 0).data, speaker_labels.data)
+            #class_accu_sum_360.add(torch.sum(out[round(out.size(0)/2)-3*multiplier:round(out.size(0)/2)+3*multiplier], 0).data, speaker_labels.data)
+            #class_accu_sum_480.add(torch.sum(out[round(out.size(0)/2)-4*multiplier:round(out.size(0)/2)+4*multiplier], 0).data, speaker_labels.data)
+
             #accu_out3 = torch.sum(flex_softmax(out[20:], axis=2), 0)
             #print(classaccu.value()[0], classaccu.value()[1])
             # Cross Entropy Loss for a Sequence (Time Series) of Output?
@@ -679,17 +697,17 @@ def main():
 
         if (best_test_accu < class_accu.value()[0]): best_test_accu = class_accu.value()[0]
         if (best_test_accu_sum < class_accu_sum.value()[0]): best_test_accu_sum = class_accu_sum.value()[0]
-        if (best_test_accu_sum_100 < class_accu_sum_120.value()[0]): best_test_accu_sum_100 = class_accu_sum_120.value()[0]
-        if (best_test_accu_sum_200 < class_accu_sum_240.value()[0]): best_test_accu_sum_200 = class_accu_sum_240.value()[0]
-        if (best_test_accu_sum_300 < class_accu_sum_360.value()[0]): best_test_accu_sum_300 = class_accu_sum_360.value()[0]
-        if (best_test_accu_sum_400 < class_accu_sum_480.value()[0]): best_test_accu_sum_400 = class_accu_sum_480.value()[0]
+        if (best_test_accu_sum_120 < class_accu_sum_120.value()[0]): best_test_accu_sum_120 = class_accu_sum_120.value()[0]
+        if (best_test_accu_sum_240 < class_accu_sum_240.value()[0]): best_test_accu_sum_240 = class_accu_sum_240.value()[0]
+        if (best_test_accu_sum_360 < class_accu_sum_360.value()[0]): best_test_accu_sum_360 = class_accu_sum_360.value()[0]
+        if (best_test_accu_sum_480 < class_accu_sum_480.value()[0]): best_test_accu_sum_480 = class_accu_sum_480.value()[0]
 
         print("\nBEST EPOCH TRAINING RESULTS:\t", best_train_accu, "\t", best_train_accu_sum,
-              "\t", best_train_accu_sum_100, "\t", best_train_accu_sum_200,
-              "\t", best_train_accu_sum_300, "\t", best_train_accu_sum_400)
+              "\t", best_train_accu_sum_120, "\t", best_train_accu_sum_240,
+              "\t", best_train_accu_sum_360, "\t", best_train_accu_sum_480)
         print("\nBEST EPOCH TEST RESULTS:\t", best_test_accu, "\t", best_test_accu_sum,
-              "\t", best_test_accu_sum_100, "\t", best_test_accu_sum_200,
-              "\t", best_test_accu_sum_300, "\t", best_test_accu_sum_400)
+              "\t", best_test_accu_sum_120, "\t", best_test_accu_sum_240,
+              "\t", best_test_accu_sum_360, "\t", best_test_accu_sum_480)
         print("\nEPOCHS 70%, 90%, 95%, 99%:\t", epoch_70, "\t", epoch_90, "\t", epoch_95, "\t", epoch_99)
         print("\nBEST AVERAGE LOSS:\t", best_avg_loss, "\n")
         ########
