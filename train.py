@@ -22,6 +22,7 @@ import torch
 ########
 import torch.nn as nn
 import torchnet as tnt
+import random
 ########
 
 from torch.autograd import Variable
@@ -86,8 +87,9 @@ parser.add_argument('--loss_type', default='reg', help='Type of the loss. reg|su
 parser.add_argument('--cnn_features', default=400, type=int, help='Hidden size of RNNs')
 parser.add_argument('--kernel', default=11, type=int, help='Kernel width')
 parser.add_argument('--stride', default=2, type=int, help='Stride in time')
-parser.add_argument('--crop_begin', default=400, type=int, help='Miliseconds to crop in the begning before training')
-parser.add_argument('--crop_end', default=0, type=int, help='Miliseconds to crop in the end before training')
+parser.add_argument('--crop_begin', default=40, type=int, help='Miliseconds to crop in the begning before training')
+parser.add_argument('--sample_miliseconds', default=320, type=int, help='Miliseconds size of the samples')
+parser.add_argument('--crop_end', default=40, type=int, help='Miliseconds to crop in the end before training')
 ########
 parser.set_defaults(cuda=False, silent=False, checkpoint=False, visdom=False, augment=False, tensorboard=False,
                     log_params=False, no_bucketing=False)
@@ -314,8 +316,15 @@ def main():
     epoch_95 = None
     epoch_99 = None
 
-    loss_begin = round(args.crop_begin/(10*args.stride))
-    loss_end = -round(args.crop_end/(10*args.stride)) or None
+    if args.stride == 1: multiplier = 6
+    if args.stride == 2: multiplier = 3
+    if args.stride == 3: multiplier = 2
+    if args.stride == 4: multiplier = 1  # (Should be 1.5...)
+
+    sample_time_steps = int(args.sample_miliseconds / 10)
+    loss_begin = int(args.crop_begin / (20 * args.stride))
+    loss_end = -int(args.crop_end / (20 * args.stride)) or None
+
     print("LOSS BEGIN:", loss_begin)
     print("LOSS END:", loss_end)
     ########
@@ -370,14 +379,23 @@ def main():
             if args.cuda:
                 inputs = inputs.cuda()
 
+            ########
+            """
             out = model(inputs)
+            """
+            temp_random = random.randint(0, (inputs.size(3)-1)-sample_time_steps)
+            print("INPUT", inputs[...,temp_random:temp_random+sample_time_steps].size(),temp_random, temp_random+sample_time_steps)
+            out = model(inputs[...,temp_random:temp_random+sample_time_steps])
+            print("OUTPUT", out.size())
+            ########
+
             out = out.transpose(0, 1)  # TxNxH
 
             ########
             speaker_labels = speaker_labels.cuda(async=True).long()
             # Prints the output of the model in a sequence of probabilities of char for each audio...
             torch.set_printoptions(profile="full")
-            ########print("OUT: " + str(out.size()), "SPEAKER LABELS:" + str(speaker_labels.size()), "INPUT PERCENTAGES MEAN: " + str(input_percentages.mean()))
+            ####print("OUT: " + str(out.size()), "SPEAKER LABELS:" + str(speaker_labels.size()), "INPUT PERCENTAGES MEAN: " + str(input_percentages.mean()))
             """
             seq_length = out.size(0)
             sizes = Variable(input_percentages.mul_(int(seq_length)).int(), requires_grad=False)
@@ -391,8 +409,8 @@ def main():
             #softmax_output_alt = flex_softmax(out, axis=2).data # This is FINE!!! <<<===
             #print(softmax_output[0][0])
             #print(softmax_output_alt[0][0])
-            ########new_out = torch.sum(out, 0)
-            ########new_out = torch.sum(out[20:], 0)
+            ####new_out = torch.sum(out, 0)
+            ####new_out = torch.sum(out[20:], 0)
             #print(out.size())
             #print(new_out.size())
             #print(out[-1].size())
@@ -403,19 +421,15 @@ def main():
                 #loss_out = out[-1]; loss_speaker_labels = speaker_labels
                 loss_out = out[round(out.size(0)/2)]; loss_speaker_labels = speaker_labels
                 #print("LOSS TYPE = REGULAR")
-            #elif args.loss_type == "reg2":
-            #    loss_out = out[round(out.size(0)/3)] + out[2*round(out.size(0)/3)]; loss_speaker_labels = speaker_labels
-            #    #loss_out = out[round(out.size(0)/2)]; loss_speaker_labels = speaker_labels
-            #    #print("LOSS TYPE = REGULAR-2")
             elif args.loss_type == "sum":
                 loss_out = torch.sum(out[loss_begin:loss_end], 0); loss_speaker_labels = speaker_labels
                 #print("LOSS TYPE = SUM")
             elif args.loss_type == "full":
                 # Don't know if is ok!!! Don't use!!! => loss_out = out.contiguous().view(-1,48); loss_speaker_labels = speaker_labels.repeat(out.size(0)) #speaker_labels = speaker_labels.expand(20, out.size(0))
                 # Don't know if is ok!!! Don't use!!! => loss_out = out.contiguous().view(-1,48); loss_speaker_labels = speaker_labels.repeat(1, out.size(0)).squeeze() #speaker_labels = speaker_labels.expand(20, out.size(0))
-                loss_out = out.contiguous().view(-1,48)[loss_begin:loss_end]; loss_speaker_labels = speaker_labels.repeat(out.size(0),1).view(-1)[loss_begin:loss_end] #speaker_labels = speaker_labels.expand(20, out.size(0))
+                loss_out = out.contiguous()[loss_begin:loss_end].view(-1,48); loss_speaker_labels = speaker_labels.repeat(out.size(0),1)[loss_begin:loss_end].view(-1) #speaker_labels = speaker_labels.expand(20, out.size(0))
                 #print("LOSS TYPE = FULL")
-            #print("LOSS_OUT: " + str(loss_out.size()), "SPEAKER LABELS:" + str(loss_speaker_labels.size()))
+            print("LOSS_OUT: " + str(loss_out.size()), "SPEAKER LABELS:" + str(loss_speaker_labels.size()))
             loss = criterion(loss_out, loss_speaker_labels)
             ########
 
@@ -433,23 +447,23 @@ def main():
             losses.update(loss_value, inputs.size(0))
 
             ########
-            if args.stride == 1: multiplier = 6
-            if args.stride == 2: multiplier = 3
-            if args.stride == 3: multiplier = 2
-            if args.stride == 4: multiplier = 1 #(Should be 1.5...)
-            if args.stride == 5: multiplier = 1 #(Should be 1.25...)
+            #if args.stride == 1: multiplier = 6
+            #if args.stride == 2: multiplier = 3
+            #if args.stride == 3: multiplier = 2
+            #if args.stride == 4: multiplier = 1 #(Should be 1.5...)
+            #if args.stride == 5: multiplier = 1 #(Should be 1.25...)
 
             class_accu.add(out[round(out.size(0)/2)].data, speaker_labels.data)
             class_accu_sum.add(torch.sum(out, 0).data, speaker_labels.data)
 
-            class_accu_sum_120.add(torch.sum(out[1*multiplier:-1*multiplier], 0).data, speaker_labels.data)
-            class_accu_sum_240.add(torch.sum(out[2*multiplier:-2*multiplier], 0).data, speaker_labels.data)
-            class_accu_sum_360.add(torch.sum(out[3*multiplier:-3*multiplier], 0).data, speaker_labels.data)
-            class_accu_sum_480.add(torch.sum(out[4*multiplier:-4*multiplier], 0).data, speaker_labels.data)
-            #class_accu_sum_120.add(torch.sum(out[round(out.size(0)/2)-1*multiplier:round(out.size(0)/2)+1*multiplier], 0).data, speaker_labels.data)
-            #class_accu_sum_240.add(torch.sum(out[round(out.size(0)/2)-2*multiplier:round(out.size(0)/2)+2*multiplier], 0).data, speaker_labels.data)
-            #class_accu_sum_360.add(torch.sum(out[round(out.size(0)/2)-3*multiplier:round(out.size(0)/2)+3*multiplier], 0).data, speaker_labels.data)
-            #class_accu_sum_480.add(torch.sum(out[round(out.size(0)/2)-4*multiplier:round(out.size(0)/2)+4*multiplier], 0).data, speaker_labels.data)
+            #class_accu_sum_120.add(torch.sum(out[1*multiplier:-1*multiplier], 0).data, speaker_labels.data)
+            #class_accu_sum_240.add(torch.sum(out[2*multiplier:-2*multiplier], 0).data, speaker_labels.data)
+            #class_accu_sum_360.add(torch.sum(out[3*multiplier:-3*multiplier], 0).data, speaker_labels.data)
+            #class_accu_sum_480.add(torch.sum(out[4*multiplier:-4*multiplier], 0).data, speaker_labels.data)
+            ####class_accu_sum_120.add(torch.sum(out[round(out.size(0)/2)-1*multiplier:round(out.size(0)/2)+1*multiplier], 0).data, speaker_labels.data)
+            ####class_accu_sum_240.add(torch.sum(out[round(out.size(0)/2)-2*multiplier:round(out.size(0)/2)+2*multiplier], 0).data, speaker_labels.data)
+            ####class_accu_sum_360.add(torch.sum(out[round(out.size(0)/2)-3*multiplier:round(out.size(0)/2)+3*multiplier], 0).data, speaker_labels.data)
+            ####class_accu_sum_480.add(torch.sum(out[round(out.size(0)/2)-4*multiplier:round(out.size(0)/2)+4*multiplier], 0).data, speaker_labels.data)
 
             #accu_out3 = torch.sum(flex_softmax(out[20:], axis=2), 0)
             #print(classaccu.value()[0], classaccu.value()[1])
@@ -491,14 +505,16 @@ def main():
                       'Loss {loss.val:.4f} ({loss.avg:.4f})\t'
                       'CAR {car:.3f}\t'
                       'CAR_SUM {car_sum:.3f}\t'
-                      'CAR_SUM_120 {car_sum_120:.3f}\t'
-                      'CAR_SUM_240 {car_sum_240:.3f}\t'
-                      'CAR_SUM_360 {car_sum_360:.3f}\t'
-                      'CAR_SUM_480 {car_sum_480:.3f}\t'
+                      #'CAR_SUM_120 {car_sum_120:.3f}\t'
+                      #'CAR_SUM_240 {car_sum_240:.3f}\t'
+                      #'CAR_SUM_360 {car_sum_360:.3f}\t'
+                      #'CAR_SUM_480 {car_sum_480:.3f}\t'
                       .format((epoch + 1), (i + 1), len(train_loader), batch_time=batch_time, data_time=data_time,
                               loss=losses, car=class_accu.value()[0], car_sum=class_accu_sum.value()[0],
-                              car_sum_240=class_accu_sum_240.value()[0], car_sum_120=class_accu_sum_120.value()[0],
-                              car_sum_360=class_accu_sum_360.value()[0], car_sum_480=class_accu_sum_480.value()[0]))
+                      #        car_sum_240=class_accu_sum_240.value()[0], car_sum_120=class_accu_sum_120.value()[0],
+                      #        car_sum_360=class_accu_sum_360.value()[0], car_sum_480=class_accu_sum_480.value()[0]
+                              )
+                      )
                 ########
 
             ########
@@ -534,31 +550,35 @@ def main():
         if (best_avg_loss > avg_loss): best_avg_loss = avg_loss
 
         print("\nCURRENT EPOCH TRAINING RESULTS:\t", class_accu.value()[0], "\t", class_accu_sum.value()[0],"\t",
-              class_accu_sum_120.value()[0], class_accu_sum_240.value()[0], class_accu_sum_360.value()[0],
-              "\t", class_accu_sum_480.value()[0], "\n")
+              #class_accu_sum_120.value()[0], class_accu_sum_240.value()[0], class_accu_sum_360.value()[0], "\t", class_accu_sum_480.value()[0], "\n"
+              )
 
         if (best_train_accu < class_accu.value()[0]): best_train_accu = class_accu.value()[0]
         if (best_train_accu_sum < class_accu_sum.value()[0]): best_train_accu_sum = class_accu_sum.value()[0]
-        if (best_train_accu_sum_120 < class_accu_sum_120.value()[0]): best_train_accu_sum_120 = class_accu_sum_120.value()[0]
-        if (best_train_accu_sum_240 < class_accu_sum_240.value()[0]): best_train_accu_sum_240 = class_accu_sum_240.value()[0]
-        if (best_train_accu_sum_360 < class_accu_sum_360.value()[0]): best_train_accu_sum_360 = class_accu_sum_360.value()[0]
-        if (best_train_accu_sum_480 < class_accu_sum_480.value()[0]): best_train_accu_sum_480 = class_accu_sum_480.value()[0]
+        #if (best_train_accu_sum_120 < class_accu_sum_120.value()[0]): best_train_accu_sum_120 = class_accu_sum_120.value()[0]
+        #if (best_train_accu_sum_240 < class_accu_sum_240.value()[0]): best_train_accu_sum_240 = class_accu_sum_240.value()[0]
+        #if (best_train_accu_sum_360 < class_accu_sum_360.value()[0]): best_train_accu_sum_360 = class_accu_sum_360.value()[0]
+        #if (best_train_accu_sum_480 < class_accu_sum_480.value()[0]): best_train_accu_sum_480 = class_accu_sum_480.value()[0]
 
         get_70 = ((class_accu.value()[0] > 70) or (class_accu_sum.value()[0] > 70)
-                  or (class_accu_sum_120.value()[0] > 70) or (class_accu_sum_240.value()[0] > 70)
-                  or (class_accu_sum_360.value()[0] > 70) or (class_accu_sum_480.value()[0] > 70))
+                  #or (class_accu_sum_120.value()[0] > 70) or (class_accu_sum_240.value()[0] > 70)
+                  #or (class_accu_sum_360.value()[0] > 70) or (class_accu_sum_480.value()[0] > 70)
+                  )
         if ((epoch_70 is None) and (get_70 == True)): epoch_70 = epoch + 1
         get_90 = ((class_accu.value()[0] > 90) or (class_accu_sum.value()[0] > 90)
-                  or (class_accu_sum_120.value()[0] > 90) or (class_accu_sum_240.value()[0] > 90)
-                  or (class_accu_sum_360.value()[0] > 90) or (class_accu_sum_480.value()[0] > 90))
+                  #or (class_accu_sum_120.value()[0] > 90) or (class_accu_sum_240.value()[0] > 90)
+                  #or (class_accu_sum_360.value()[0] > 90) or (class_accu_sum_480.value()[0] > 90)
+                  )
         if ((epoch_90 is None) and (get_90 == True)): epoch_90 = epoch + 1
         get_95 = ((class_accu.value()[0] > 95) or (class_accu_sum.value()[0] > 95)
-                  or (class_accu_sum_120.value()[0] > 95) or (class_accu_sum_240.value()[0] > 95)
-                  or (class_accu_sum_360.value()[0] > 95) or (class_accu_sum_480.value()[0] > 95))
+                  #or (class_accu_sum_120.value()[0] > 95) or (class_accu_sum_240.value()[0] > 95)
+                  #or (class_accu_sum_360.value()[0] > 95) or (class_accu_sum_480.value()[0] > 95)
+                  )
         if ((epoch_95 is None) and (get_95 == True)): epoch_95 = epoch + 1
         get_99 = ((class_accu.value()[0] > 99) or (class_accu_sum.value()[0] > 99)
-                  or (class_accu_sum_120.value()[0] > 99) or (class_accu_sum_240.value()[0] > 99)
-                  or (class_accu_sum_360.value()[0] > 99) or (class_accu_sum_480.value()[0] > 99))
+                  #or (class_accu_sum_120.value()[0] > 99) or (class_accu_sum_240.value()[0] > 99)
+                  #or (class_accu_sum_360.value()[0] > 99) or (class_accu_sum_480.value()[0] > 99)
+                  )
         if ((epoch_99 is None) and (get_99 == True)): epoch_99 = epoch + 1
         ########
 
@@ -620,11 +640,11 @@ def main():
             ########
 
             ########
-            if args.stride == 1: multiplier = 6
-            if args.stride == 2: multiplier = 3
-            if args.stride == 3: multiplier = 2
-            if args.stride == 4: multiplier = 1 #(Should be 1.5...)
-            if args.stride == 5: multiplier = 1 #(Should be 1.25...)
+            #if args.stride == 1: multiplier = 6
+            #if args.stride == 2: multiplier = 3
+            #if args.stride == 3: multiplier = 2
+            #if args.stride == 4: multiplier = 1 #(Should be 1.5...)
+            #if args.stride == 5: multiplier = 1 #(Should be 1.25...)
 
             class_accu.add(out[round(out.size(0)/2)].data, speaker_labels.data)
             class_accu_sum.add(torch.sum(out, 0).data, speaker_labels.data)
@@ -655,7 +675,9 @@ def main():
                   'CAR_SUM_480 {car_sum_480:.3f}\t'
                   .format(epoch + 1, car=class_accu.value()[0], car_sum=class_accu_sum.value()[0],
                           car_sum_240=class_accu_sum_240.value()[0], car_sum_120=class_accu_sum_120.value()[0],
-                          car_sum_360=class_accu_sum_360.value()[0], car_sum_480=class_accu_sum_480.value()[0]))
+                          car_sum_360=class_accu_sum_360.value()[0], car_sum_480=class_accu_sum_480.value()[0]
+                          )
+                  )
             """
             seq_length = out.size(0)
             sizes = input_percentages.mul_(int(seq_length)).int()            
