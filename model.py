@@ -64,10 +64,10 @@ class BatchRNN(nn.Module):
         if self.bidirectional:
 
             ########
-            """
+            #"""
             x = x.view(x.size(0), x.size(1), 2, -1).sum(2).view(x.size(0), x.size(1), -1)  # (TxNxH*2) -> (TxNxH) by sum
-            """
-            x = x.view(x.size(0), x.size(1), 2, -1).sum(2, keepdim=True).view(x.size(0), x.size(1), -1)  # (TxNxH*2) -> (TxNxH) by sum
+            #"""
+            #x = x.view(x.size(0), x.size(1), 2, -1).sum(2, keepdim=True).view(x.size(0), x.size(1), -1)  # (TxNxH*2) -> (TxNxH) by sum
             ########
 
         return x

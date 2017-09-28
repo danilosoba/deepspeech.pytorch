@@ -89,7 +89,7 @@ parser.add_argument('--kernel', default=11, type=int, help='Kernel width')
 parser.add_argument('--stride', default=2, type=int, help='Stride in time')
 parser.add_argument('--crop_begin', default=40, type=int, help='Miliseconds to crop in the begning before training')
 parser.add_argument('--sample_miliseconds', default=320, type=int, help='Miliseconds size of the samples')
-parser.add_argument('--sample_proportion', default=0.8, type=float, help='Sample proportion to train')
+parser.add_argument('--sample_proportion', default=1.0, type=float, help='Sample proportion to train')
 parser.add_argument('--crop_end', default=40, type=int, help='Miliseconds to crop in the end before training')
 ########
 parser.set_defaults(cuda=False, silent=False, checkpoint=False, visdom=False, augment=False, tensorboard=False,
@@ -323,8 +323,8 @@ def main():
     if args.stride == 4: multiplier = 1  # (Should be 1.5...)
 
     #sample_time_steps = int(args.sample_miliseconds / 10)
-    loss_begin = int(args.crop_begin / (20 * args.stride))
-    loss_end = -int(args.crop_end / (20 * args.stride)) or None
+    loss_begin = round(args.crop_begin / (10 * args.stride))
+    loss_end = -round(args.crop_end / (10 * args.stride)) or None
 
     print("LOSS BEGIN:", loss_begin)
     print("LOSS END:", loss_end)
