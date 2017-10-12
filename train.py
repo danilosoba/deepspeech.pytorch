@@ -362,7 +362,7 @@ def main():
             """
             inputs, targets, input_percentages, target_sizes = data
             """
-            inputs, targets, input_percentages, target_sizes, speaker_labels = data
+            inputs, targets, input_percentages, target_sizes, speaker_labels, mfcc = data
             ########
 
             # measure data loading time
@@ -606,7 +606,7 @@ def main():
             """
             inputs, targets, input_percentages, target_sizes = data
             """
-            inputs, targets, input_percentages, target_sizes, speaker_labels = data
+            inputs, targets, input_percentages, target_sizes, speaker_labels, mfcc = data
             ########
 
             inputs = Variable(inputs, volatile=True)

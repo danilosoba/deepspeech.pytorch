@@ -126,6 +126,37 @@ class SpectrogramParser(AudioParser):
 
         return spect
 
+    #########
+    def parse_audio_mfcc(self, audio_path):
+        if self.augment:
+            y = load_randomly_augmented_audio(audio_path, self.sample_rate)
+        else:
+            y = load_audio(audio_path)
+        if self.noiseInjector:
+            add_noise = np.random.binomial(1, self.noise_prob)
+            if add_noise:
+                y = self.noiseInjector.inject_noise(y)
+        #n_fft = int(self.sample_rate * self.window_size)
+        #win_length = n_fft
+        #hop_length = int(self.sample_rate * self.window_stride)
+        ## STFT
+        #D = librosa.stft(y, n_fft=n_fft, hop_length=hop_length,
+        #                 win_length=win_length, window=self.window)
+        #spect, phase = librosa.magphase(D)
+        ## S = log(S+1)
+        #spect = np.log1p(spect)
+        #spect = torch.FloatTensor(spect)
+        #if self.normalize:
+        #    mean = spect.mean()
+        #    std = spect.std()
+        #    spect.add_(-mean)
+        #    spect.div_(std)
+        mfcc = librosa.feature.mfcc(y=y, sr=self.sample_rate, n_mfcc=40)
+        mfcc = torch.FloatTensor(mfcc)
+
+        return mfcc
+    #########
+
     def parse_transcript(self, transcript_path):
         raise NotImplementedError
 
@@ -171,10 +202,11 @@ class SpectrogramDataset(Dataset, SpectrogramParser):
         transcript = self.parse_transcript(transcript_path)
         ########
         speaker_label = self.speaker_labels[index]
+        mfcc = self.parse_audio_mfcc(audio_path)
         """
         return spect, transcript
         """
-        return spect, transcript, speaker_label
+        return spect, transcript, speaker_label, mfcc
         ########
 
 
@@ -209,6 +241,7 @@ def _collate_fn(batch):
         target = sample[1]
         ########
         speaker_labels_returned[x] = sample[2]
+        mfcc = sample[3]
         ########
         seq_length = tensor.size(1)
         inputs[x][0].narrow(1, 0, seq_length).copy_(tensor)
@@ -220,7 +253,7 @@ def _collate_fn(batch):
     """
     return inputs, targets, input_percentages, target_sizes
     """
-    return inputs, targets, input_percentages, target_sizes, speaker_labels_returned
+    return inputs, targets, input_percentages, target_sizes, speaker_labels_returned, mfcc
     ########
 
 class AudioDataLoader(DataLoader):
