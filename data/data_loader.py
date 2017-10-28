@@ -136,9 +136,9 @@ class SpectrogramParser(AudioParser):
             add_noise = np.random.binomial(1, self.noise_prob)
             if add_noise:
                 y = self.noiseInjector.inject_noise(y)
-        #n_fft = int(self.sample_rate * self.window_size)
+        n_fft = int(self.sample_rate * self.window_size)
         #win_length = n_fft
-        #hop_length = int(self.sample_rate * self.window_stride)
+        hop_length = int(self.sample_rate * self.window_stride)
         ## STFT
         #D = librosa.stft(y, n_fft=n_fft, hop_length=hop_length,
         #                 win_length=win_length, window=self.window)
@@ -151,7 +151,8 @@ class SpectrogramParser(AudioParser):
         #    std = spect.std()
         #    spect.add_(-mean)
         #    spect.div_(std)
-        mfcc = librosa.feature.mfcc(y=y, sr=self.sample_rate, n_mfcc=40)
+        #mfcc = librosa.feature.mfcc(y=y, sr=self.sample_rate, n_mfcc=40)
+        mfcc = librosa.feature.mfcc(y=y, sr=self.sample_rate, n_mfcc=40, n_fft=n_fft, hop_length=hop_length)
         mfcc = torch.FloatTensor(mfcc)
 
         return mfcc
@@ -203,6 +204,8 @@ class SpectrogramDataset(Dataset, SpectrogramParser):
         ########
         speaker_label = self.speaker_labels[index]
         mfcc = self.parse_audio_mfcc(audio_path)
+        #print("SPECT SIZE:",spect.size())
+        #print("MFCC SIZE:",mfcc.size())
         """
         return spect, transcript
         """
@@ -229,6 +232,9 @@ def _collate_fn(batch):
     minibatch_size = len(batch)
     max_seqlength = longest_sample.size(1)
     inputs = torch.zeros(minibatch_size, 1, freq_size, max_seqlength)
+    ########
+    mfccs = torch.zeros(minibatch_size, 1, 40, max_seqlength)
+    ########
     input_percentages = torch.FloatTensor(minibatch_size)
     target_sizes = torch.IntTensor(minibatch_size)
     targets = []
@@ -244,7 +250,13 @@ def _collate_fn(batch):
         mfcc = sample[3]
         ########
         seq_length = tensor.size(1)
+        ########
+        seq_length_mfcc = mfcc.size(1)
+        ########
         inputs[x][0].narrow(1, 0, seq_length).copy_(tensor)
+        ########
+        mfccs[x][0].narrow(1, 0, seq_length_mfcc).copy_(mfcc)
+        ########
         input_percentages[x] = seq_length / float(max_seqlength)
         target_sizes[x] = len(target)
         targets.extend(target)
@@ -253,7 +265,7 @@ def _collate_fn(batch):
     """
     return inputs, targets, input_percentages, target_sizes
     """
-    return inputs, targets, input_percentages, target_sizes, speaker_labels_returned, mfcc
+    return inputs, targets, input_percentages, target_sizes, speaker_labels_returned, mfccs
     ########
 
 class AudioDataLoader(DataLoader):

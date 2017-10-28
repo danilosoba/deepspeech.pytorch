@@ -362,12 +362,19 @@ def main():
             """
             inputs, targets, input_percentages, target_sizes = data
             """
-            inputs, targets, input_percentages, target_sizes, speaker_labels, mfcc = data
+            inputs, targets, input_percentages, target_sizes, speaker_labels, mfccs = data
             ########
 
             # measure data loading time
             data_time.update(time.time() - end)
             inputs = Variable(inputs, requires_grad=False)
+
+            ########
+            mfccs = Variable(mfccs, requires_grad=False)
+            #inputs = mfccs # <<-- This line makes us to use mfccs...
+            print("INPUTS SIZE:", inputs.size())
+            print("MFCCS SIZE:", mfccs.size())
+            ########
 
             ########
             """
@@ -606,7 +613,7 @@ def main():
             """
             inputs, targets, input_percentages, target_sizes = data
             """
-            inputs, targets, input_percentages, target_sizes, speaker_labels, mfcc = data
+            inputs, targets, input_percentages, target_sizes, speaker_labels, mfccs = data
             ########
 
             inputs = Variable(inputs, volatile=True)
