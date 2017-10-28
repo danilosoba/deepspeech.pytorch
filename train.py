@@ -371,7 +371,7 @@ def main():
 
             ########
             mfccs = Variable(mfccs, requires_grad=False)
-            #inputs = mfccs # <<-- This line makes us to use mfccs...
+            inputs = mfccs # <<-- This line makes us to use mfccs...
             print("INPUTS SIZE:", inputs.size())
             print("MFCCS SIZE:", mfccs.size())
             ########
@@ -617,6 +617,13 @@ def main():
             ########
 
             inputs = Variable(inputs, volatile=True)
+
+            ########
+            mfccs = Variable(mfccs, requires_grad=False)
+            inputs = mfccs # <<-- This line makes us to use mfccs...
+            print("INPUTS SIZE:", inputs.size())
+            print("MFCCS SIZE:", mfccs.size())
+            ########
 
             ########
             speaker_labels = Variable(speaker_labels, requires_grad=False)
