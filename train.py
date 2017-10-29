@@ -372,8 +372,8 @@ def main():
             ########
             mfccs = Variable(mfccs, requires_grad=False)
             inputs = mfccs # <<-- This line makes us to use mfccs...
-            print("INPUTS SIZE:", inputs.size())
-            print("MFCCS SIZE:", mfccs.size())
+            #print("INPUTS SIZE:", inputs.size())
+            #print("MFCCS SIZE:", mfccs.size())
             ########
 
             ########
@@ -621,8 +621,8 @@ def main():
             ########
             mfccs = Variable(mfccs, requires_grad=False)
             inputs = mfccs # <<-- This line makes us to use mfccs...
-            print("INPUTS SIZE:", inputs.size())
-            print("MFCCS SIZE:", mfccs.size())
+            #print("INPUTS SIZE:", inputs.size())
+            #print("MFCCS SIZE:", mfccs.size())
             ########
 
             ########

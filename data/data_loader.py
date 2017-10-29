@@ -151,9 +151,13 @@ class SpectrogramParser(AudioParser):
         #    std = spect.std()
         #    spect.add_(-mean)
         #    spect.div_(std)
-        #mfcc = librosa.feature.mfcc(y=y, sr=self.sample_rate, n_mfcc=40)
-        mfcc = librosa.feature.mfcc(y=y, sr=self.sample_rate, n_mfcc=40, n_fft=n_fft, hop_length=hop_length)
+        mfcc = librosa.feature.mfcc(y=y, sr=self.sample_rate, n_mfcc=40, n_fft=n_fft, hop_length=hop_length, n_mels=64)
         mfcc = torch.FloatTensor(mfcc)
+        if self.normalize:
+            mean = mfcc.mean()
+            std = mfcc.std()
+            mfcc.add_(-mean)
+            mfcc.div_(std)
 
         return mfcc
     #########

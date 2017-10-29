@@ -136,7 +136,9 @@ class DeepSpeech(nn.Module):
         #rnn_input_size = int(math.floor((sample_rate * window_size) / 2) + 1)
         #rnn_input_size = int(math.floor(rnn_input_size - 161) / 2 + 1)
         #rnn_input_size *= cnn_features # <<-- To work without mfcc...
-        rnn_input_size = cnn_features
+        rnn_input_size = cnn_features # <<-- To work with mfcc...
+        print("CNN FEATURES:", cnn_features)
+        print("RNN INPUT SIZE:", rnn_input_size)
         ########
 
         rnns = []
