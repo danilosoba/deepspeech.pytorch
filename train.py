@@ -389,6 +389,7 @@ def main():
             ########
             """
             out = model(inputs)
+            out = out.transpose(0, 1)  # TxNxH
             """
             #temp_random = random.randint(0, (inputs.size(3)-1)-sample_time_steps)
             #print("INPUT", inputs[...,temp_random:temp_random+sample_time_steps].size(),temp_random, temp_random+sample_time_steps)
@@ -399,7 +400,6 @@ def main():
             out = model(inputs[...,start:start+int((inputs.size(3))*(args.sample_proportion))])
             #print("OUTPUT", out.size())
             ########
-
             out = out.transpose(0, 1)  # TxNxH
             ########
             """
@@ -700,7 +700,7 @@ def main():
                   )
             """
             seq_length = out.size(0)
-            sizes = input_percentages.mul_(int(seq_length)).int()            
+            sizes = Variable(input_percentages.mul_(int(seq_length)).int(), requires_grad=False)
             decoded_output = decoder.decode(out.data, sizes)
             target_strings = decoder.process_strings(decoder.convert_to_strings(split_targets))
             wer, cer = 0, 0
@@ -729,6 +729,7 @@ def main():
               'Average WER {wer:.3f}\t'
               'Average CER {cer:.3f}\t'.format(
             epoch + 1, wer=wer, cer=cer))
+        
         """
         ########
 
@@ -756,7 +757,6 @@ def main():
 
         ########
         """
-        
         if args.visdom:
             # epoch += 1
             x_axis = epochs[0:epoch + 1]

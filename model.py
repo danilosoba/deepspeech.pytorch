@@ -166,6 +166,7 @@ class DeepSpeech(nn.Module):
         x = self.conv(x)
         """
         ########
+
         sizes = x.size()
         x = x.view(sizes[0], sizes[1] * sizes[2], sizes[3])  # Collapse feature dimension
         x = x.transpose(1, 2).transpose(0, 1).contiguous()  # TxNxH
