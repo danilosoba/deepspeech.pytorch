@@ -207,8 +207,7 @@ def main():
                        labels=labels,
                        rnn_type=supported_rnns[rnn_type],
                        audio_conf=audio_conf,
-                       bidirectional=True,
-                       cnn_features=args.cnn_features)
+                       bidirectional=True)
     """
     model = DeepSpeech(rnn_hidden_size=args.hidden_size,
                        nb_layers=args.hidden_layers,
@@ -402,16 +401,18 @@ def main():
             ########
 
             out = out.transpose(0, 1)  # TxNxH
-
+            ########
+            """
+            seq_length = out.size(0)
+            sizes = input_percentages.mul_(int(seq_length)).int()
+            """
+            ########
             ########
             speaker_labels = speaker_labels.cuda(async=True).long()
             # Prints the output of the model in a sequence of probabilities of char for each audio...
             torch.set_printoptions(profile="full")
             ####print("OUT: " + str(out.size()), "SPEAKER LABELS:" + str(speaker_labels.size()), "INPUT PERCENTAGES MEAN: " + str(input_percentages.mean()))
             """
-            seq_length = out.size(0)
-            sizes = Variable(input_percentages.mul_(int(seq_length)).int(), requires_grad=False)
-
             loss = criterion(out, targets, sizes, target_sizes)
             """
             #print(out[:,:,0])
@@ -755,6 +756,7 @@ def main():
 
         ########
         """
+        
         if args.visdom:
             # epoch += 1
             x_axis = epochs[0:epoch + 1]

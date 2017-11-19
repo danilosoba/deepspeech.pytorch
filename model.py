@@ -69,7 +69,7 @@ class BatchRNN(nn.Module):
             #"""
             #x = x.view(x.size(0), x.size(1), 2, -1).sum(2, keepdim=True).view(x.size(0), x.size(1), -1)  # (TxNxH*2) -> (TxNxH) by sum
             ########
-
+        #self.rnn.flatten_parameters()
         return x
 
 
@@ -161,8 +161,11 @@ class DeepSpeech(nn.Module):
         self.inference_log_softmax = InferenceBatchLogSoftmax()
 
     def forward(self, x):
-        #x = self.conv(x)
-
+        ########
+        """
+        x = self.conv(x)
+        """
+        ########
         sizes = x.size()
         x = x.view(sizes[0], sizes[1] * sizes[2], sizes[3])  # Collapse feature dimension
         x = x.transpose(1, 2).transpose(0, 1).contiguous()  # TxNxH
