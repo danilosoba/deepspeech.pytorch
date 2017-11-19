@@ -405,6 +405,7 @@ def main():
 
             seq_length = out.size(0)
             sizes = Variable(input_percentages.mul_(int(seq_length)).int(), requires_grad=False)
+
             """
             ########
             ########
@@ -695,6 +696,7 @@ def main():
             """
             seq_length = out.size(0)
             sizes = input_percentages.mul_(int(seq_length)).int()
+
             decoded_output = decoder.decode(out.data, sizes)
             target_strings = decoder.process_strings(decoder.convert_to_strings(split_targets))
             wer, cer = 0, 0
@@ -723,7 +725,6 @@ def main():
               'Average WER {wer:.3f}\t'
               'Average CER {cer:.3f}\t'.format(
             epoch + 1, wer=wer, cer=cer))
-        
         """
         ########
 
@@ -751,6 +752,7 @@ def main():
 
         ########
         """
+
         if args.visdom:
             # epoch += 1
             x_axis = epochs[0:epoch + 1]
