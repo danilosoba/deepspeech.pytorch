@@ -127,15 +127,16 @@ class DeepSpeech(nn.Module):
         print("RNN_INPUT_SIZE:",rnn_input_size)
         """
 
-        self.conv = nn.Sequential(
-            nn.Conv2d(1, cnn_features, kernel_size=(40, kernel), stride=(stride, stride)),
-            nn.BatchNorm2d(cnn_features),
-            nn.Hardtanh(0, 20, inplace=True),
-        )
+        #self.conv = nn.Sequential(
+        #    nn.Conv2d(1, cnn_features, kernel_size=(40, kernel), stride=(stride, stride)),
+        #    nn.BatchNorm2d(cnn_features),
+        #    nn.Hardtanh(0, 20, inplace=True),
+        #)
         # Based on above convolutions and spectrogram size using conv formula (W - F + 2P)/ S+1
         #rnn_input_size = int(math.floor((sample_rate * window_size) / 2) + 1)
         #rnn_input_size = int(math.floor(rnn_input_size - 161) / 2 + 1)
         #rnn_input_size *= cnn_features # <<-- To work without mfcc...
+        cnn_features = 161
         rnn_input_size = cnn_features # <<-- To work with mfcc...
         print("CNN FEATURES:", cnn_features)
         print("RNN INPUT SIZE:", rnn_input_size)
@@ -160,7 +161,7 @@ class DeepSpeech(nn.Module):
         self.inference_log_softmax = InferenceBatchLogSoftmax()
 
     def forward(self, x):
-        x = self.conv(x)
+        #x = self.conv(x)
 
         sizes = x.size()
         x = x.view(sizes[0], sizes[1] * sizes[2], sizes[3])  # Collapse feature dimension

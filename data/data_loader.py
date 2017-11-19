@@ -153,6 +153,7 @@ class SpectrogramParser(AudioParser):
         #    spect.div_(std)
         mfcc = librosa.feature.mfcc(y=y, sr=self.sample_rate, n_mfcc=40, n_fft=n_fft, hop_length=hop_length, n_mels=64)
         mfcc = torch.FloatTensor(mfcc)
+        #print("MFCC OF TENTH FRAME:",mfcc[:, 9])
         if self.normalize:
             mean = mfcc.mean()
             std = mfcc.std()

@@ -1,6 +1,6 @@
 LD_PRELOAD=/usr/lib/x86_64-linux-gnu/libgomp.so.1 python train.py \
 --train_manifest data/mit_train_speaker_identification.csv --val_manifest data/mit_val_speaker_identification.csv --cuda --batch_size 20 \
---loss_type reg --learning-rate 0.05 --learning_rate_decay_rate 0.2 --learning_rate_decay_epochs 500 500 --epochs 100 --hidden_layers 2 --hidden_size 300 --cnn_features 300 \
+--loss_type reg --learning-rate 0.05 --learning_rate_decay_rate 0.2 --learning_rate_decay_epochs 500 500 --epochs 100 --hidden_layers 4 --hidden_size 256 --cnn_features 256 \
 --kernel 11 --stride 3 --crop_begin 100 --crop_end 100 --sample_proportion 0.8 #| tee logs/mfcc-reg_sample0.8_crop100x100_conv11x3_arch300x300x2_lr0.05.txt
 
 #LD_PRELOAD=/usr/lib/x86_64-linux-gnu/libgomp.so.1 python train.py \

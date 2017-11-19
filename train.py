@@ -371,7 +371,7 @@ def main():
 
             ########
             mfccs = Variable(mfccs, requires_grad=False)
-            inputs = mfccs # <<-- This line makes us to use mfccs...
+            #inputs = mfccs # <<-- This line makes us to use mfccs...
             #print("INPUTS SIZE:", inputs.size())
             #print("MFCCS SIZE:", mfccs.size())
             ########
@@ -396,9 +396,9 @@ def main():
             #out = model(inputs[...,temp_random:temp_random+sample_time_steps])
             #print("OUTPUT", out.size())
             start = random.randint(0, int((inputs.size(3)-1)*(1-args.sample_proportion)))
-            print("INPUT", inputs.size(3), inputs[...,start:start+int((inputs.size(3))*(args.sample_proportion))].size(),start, start+int((inputs.size(3))*(args.sample_proportion)))
+            #print("INPUT", inputs.size(3), inputs[...,start:start+int((inputs.size(3))*(args.sample_proportion))].size(),start, start+int((inputs.size(3))*(args.sample_proportion)))
             out = model(inputs[...,start:start+int((inputs.size(3))*(args.sample_proportion))])
-            print("OUTPUT", out.size())
+            #print("OUTPUT", out.size())
             ########
 
             out = out.transpose(0, 1)  # TxNxH
@@ -441,7 +441,7 @@ def main():
                 # Don't know if is ok!!! Don't use!!! => loss_out = out.contiguous().view(-1,48); loss_speaker_labels = speaker_labels.repeat(1, out.size(0)).squeeze() #speaker_labels = speaker_labels.expand(20, out.size(0))
                 loss_out = out.contiguous()[loss_begin:loss_end].view(-1,48); loss_speaker_labels = speaker_labels.repeat(out.size(0),1)[loss_begin:loss_end].view(-1) #speaker_labels = speaker_labels.expand(20, out.size(0))
                 #print("LOSS TYPE = FULL")
-            print("LOSS_OUT: " + str(loss_out.size()), "SPEAKER LABELS:" + str(loss_speaker_labels.size()))
+            #print("LOSS_OUT: " + str(loss_out.size()), "SPEAKER LABELS:" + str(loss_speaker_labels.size()))
             loss = criterion(loss_out, loss_speaker_labels)
             ########
 
@@ -620,7 +620,7 @@ def main():
 
             ########
             mfccs = Variable(mfccs, requires_grad=False)
-            inputs = mfccs # <<-- This line makes us to use mfccs...
+            #inputs = mfccs # <<-- This line makes us to use mfccs...
             #print("INPUTS SIZE:", inputs.size())
             #print("MFCCS SIZE:", mfccs.size())
             ########
