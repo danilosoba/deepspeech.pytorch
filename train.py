@@ -389,7 +389,6 @@ def main():
             ########
             """
             out = model(inputs)
-            out = out.transpose(0, 1)  # TxNxH
             """
             #temp_random = random.randint(0, (inputs.size(3)-1)-sample_time_steps)
             #print("INPUT", inputs[...,temp_random:temp_random+sample_time_steps].size(),temp_random, temp_random+sample_time_steps)
@@ -403,8 +402,9 @@ def main():
             out = out.transpose(0, 1)  # TxNxH
             ########
             """
+
             seq_length = out.size(0)
-            sizes = input_percentages.mul_(int(seq_length)).int()
+            sizes = Variable(input_percentages.mul_(int(seq_length)).int(), requires_grad=False)
             """
             ########
             ########
@@ -644,7 +644,6 @@ def main():
 
             out = model(inputs)
             out = out.transpose(0, 1)  # TxNxH
-
             ########
             speaker_labels = speaker_labels.cuda(async=True).long()
             # Prints the output of the model in a sequence of probabilities of char for each audio...
@@ -658,17 +657,14 @@ def main():
             #print(softmax_output[0][0])
             #print(softmax_output_alt[0][0])
             ########
-
             ########
             #if args.stride == 1: multiplier = 6
             #if args.stride == 2: multiplier = 3
             #if args.stride == 3: multiplier = 2
             #if args.stride == 4: multiplier = 1 #(Should be 1.5...)
             #if args.stride == 5: multiplier = 1 #(Should be 1.25...)
-
             class_accu.add(out[round(out.size(0)/2)].data, speaker_labels.data)
             class_accu_sum.add(torch.sum(out, 0).data, speaker_labels.data)
-
             class_accu_sum_120.add(torch.sum(out[1*multiplier:-1*multiplier], 0).data, speaker_labels.data)
             class_accu_sum_240.add(torch.sum(out[2*multiplier:-2*multiplier], 0).data, speaker_labels.data)
             class_accu_sum_360.add(torch.sum(out[3*multiplier:-3*multiplier], 0).data, speaker_labels.data)
@@ -677,7 +673,6 @@ def main():
             #class_accu_sum_240.add(torch.sum(out[round(out.size(0)/2)-2*multiplier:round(out.size(0)/2)+2*multiplier], 0).data, speaker_labels.data)
             #class_accu_sum_360.add(torch.sum(out[round(out.size(0)/2)-3*multiplier:round(out.size(0)/2)+3*multiplier], 0).data, speaker_labels.data)
             #class_accu_sum_480.add(torch.sum(out[round(out.size(0)/2)-4*multiplier:round(out.size(0)/2)+4*multiplier], 0).data, speaker_labels.data)
-
             #accu_out3 = torch.sum(flex_softmax(out[20:], axis=2), 0)
             #print(classaccu.value()[0], classaccu.value()[1])
             # Cross Entropy Loss for a Sequence (Time Series) of Output?
@@ -685,7 +680,6 @@ def main():
             #target = target.view(-1)
             #criterion = nn.CrossEntropyLoss()
             #loss = criterion(output,target)
-
             print('Validation Summary Epoch: [{0}]\t'
                   'CAR {car:.3f}\t'
                   'CAR_SUM {car_sum:.3f}\t'
@@ -700,7 +694,7 @@ def main():
                   )
             """
             seq_length = out.size(0)
-            sizes = Variable(input_percentages.mul_(int(seq_length)).int(), requires_grad=False)
+            sizes = input_percentages.mul_(int(seq_length)).int()
             decoded_output = decoder.decode(out.data, sizes)
             target_strings = decoder.process_strings(decoder.convert_to_strings(split_targets))
             wer, cer = 0, 0
