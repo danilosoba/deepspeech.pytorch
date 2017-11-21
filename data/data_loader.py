@@ -12,7 +12,6 @@ from torch.utils.data import Dataset
 windows = {'hamming': scipy.signal.hamming, 'hann': scipy.signal.hann, 'blackman': scipy.signal.blackman,
            'bartlett': scipy.signal.bartlett}
 
-
 def load_audio(path):
     sound, _ = torchaudio.load(path)
     sound = sound.numpy()
@@ -22,7 +21,6 @@ def load_audio(path):
         else:
             sound = sound.mean(axis=1)  # multiple channels, average
     return sound
-
 
 class AudioParser(object):
     def parse_transcript(self, transcript_path):
@@ -38,7 +36,6 @@ class AudioParser(object):
         :return: Audio in training/testing format
         """
         raise NotImplementedError
-
 
 class NoiseInjection(object):
     def __init__(self,
@@ -77,7 +74,6 @@ class NoiseInjection(object):
                 src_offset = 0
         data += noise_level * noise_dst
         return data
-
 
 class SpectrogramParser(AudioParser):
     def __init__(self, audio_conf, normalize=False, augment=False):
@@ -126,7 +122,6 @@ class SpectrogramParser(AudioParser):
 
         return spect
 
-    #########
     def parse_audio_mfcc(self, audio_path):
         if self.augment:
             y = load_randomly_augmented_audio(audio_path, self.sample_rate)
@@ -161,14 +156,11 @@ class SpectrogramParser(AudioParser):
             mfcc.div_(std)
 
         return mfcc
-    #########
-
-    def parse_transcript(self, transcript_path):
-        raise NotImplementedError
-
 
 class SpectrogramDataset(Dataset, SpectrogramParser):
-    def __init__(self, audio_conf, manifest_filepath, labels, normalize=False, augment=False):
+    def __init__(self, audio_conf, manifest_filepath,
+                 #labels,
+                 normalize=False, augment=False):
         """
         Dataset that loads tensors via a csv containing file paths to audio files and transcripts separated by
         a comma. Each new line is a different sample. Example below:
@@ -185,7 +177,6 @@ class SpectrogramDataset(Dataset, SpectrogramParser):
         with open(manifest_filepath) as f:
             ids = f.readlines()
         ids = [x.strip().split(',') for x in ids]
-        ########
         if len(ids[0]) == 3:
             self.speaker_labels = []
             for x in ids:
@@ -195,38 +186,22 @@ class SpectrogramDataset(Dataset, SpectrogramParser):
         else:
             self.speaker_labels = None
             print("SPEAKER LABELS: NONE")
-        ########
         self.ids = ids
         self.size = len(ids)
-        self.labels_map = dict([(labels[i], i) for i in range(len(labels))])
         super(SpectrogramDataset, self).__init__(audio_conf, normalize, augment)
 
     def __getitem__(self, index):
         sample = self.ids[index]
         audio_path, transcript_path = sample[0], sample[1]
         spect = self.parse_audio(audio_path)
-        transcript = self.parse_transcript(transcript_path)
-        ########
         speaker_label = self.speaker_labels[index]
         mfcc = self.parse_audio_mfcc(audio_path)
         #print("SPECT SIZE:",spect.size())
         #print("MFCC SIZE:",mfcc.size())
-        """
-        return spect, transcript
-        """
-        return spect, transcript, speaker_label, mfcc
-        ########
-
-
-    def parse_transcript(self, transcript_path):
-        with open(transcript_path, 'r') as transcript_file:
-            transcript = transcript_file.read().replace('\n', '')
-        transcript = list(filter(None, [self.labels_map.get(x) for x in list(transcript)]))
-        return transcript
+        return spect, speaker_label, mfcc
 
     def __len__(self):
         return self.size
-
 
 def _collate_fn(batch):
     def func(p):
@@ -237,42 +212,20 @@ def _collate_fn(batch):
     minibatch_size = len(batch)
     max_seqlength = longest_sample.size(1)
     inputs = torch.zeros(minibatch_size, 1, freq_size, max_seqlength)
-    ########
     mfccs = torch.zeros(minibatch_size, 1, 40, max_seqlength)
-    ########
     input_percentages = torch.FloatTensor(minibatch_size)
-    target_sizes = torch.IntTensor(minibatch_size)
-    targets = []
-    ########
     speaker_labels_returned = torch.IntTensor(minibatch_size)
-    ########
     for x in range(minibatch_size):
         sample = batch[x]
         tensor = sample[0]
-        target = sample[1]
-        ########
-        speaker_labels_returned[x] = sample[2]
-        mfcc = sample[3]
-        ########
+        speaker_labels_returned[x] = sample[1]
+        mfcc = sample[2]
         seq_length = tensor.size(1)
-        ########
         seq_length_mfcc = mfcc.size(1)
-        ########
         inputs[x][0].narrow(1, 0, seq_length).copy_(tensor)
-        ########
         mfccs[x][0].narrow(1, 0, seq_length_mfcc).copy_(mfcc)
-        ########
         input_percentages[x] = seq_length / float(max_seqlength)
-        target_sizes[x] = len(target)
-        targets.extend(target)
-    targets = torch.IntTensor(targets)
-    ########
-    """
-    return inputs, targets, input_percentages, target_sizes
-    """
-    return inputs, targets, input_percentages, target_sizes, speaker_labels_returned, mfccs
-    ########
-
+    return inputs, input_percentages, speaker_labels_returned, mfccs
 
 class AudioDataLoader(DataLoader):
     def __init__(self, *args, **kwargs):
@@ -281,7 +234,6 @@ class AudioDataLoader(DataLoader):
         """
         super(AudioDataLoader, self).__init__(*args, **kwargs)
         self.collate_fn = _collate_fn
-
 
 def augment_audio_with_sox(path, sample_rate, tempo, gain):
     """
@@ -296,7 +248,6 @@ def augment_audio_with_sox(path, sample_rate, tempo, gain):
         os.system(sox_params)
         y = load_audio(augmented_filename)
         return y
-
 
 def load_randomly_augmented_audio(path, sample_rate=16000, tempo_range=(0.85, 1.15),
                                   gain_range=(-6, 8)):

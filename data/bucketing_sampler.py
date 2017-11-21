@@ -3,7 +3,6 @@ import numpy as np
 from data.data_loader import SpectrogramDataset, load_audio
 from collections import defaultdict
 
-
 class SpectrogramDatasetWithLength(SpectrogramDataset):
     def __init__(self, *args, **kwargs):
         """
@@ -19,7 +18,6 @@ class SpectrogramDatasetWithLength(SpectrogramDataset):
         self.bins_to_samples = defaultdict(list)
         for idx, bin_id in enumerate(audio_samples_indices):
             self.bins_to_samples[bin_id].append(idx)
-
 
 class BucketingSampler(Sampler):
     def __init__(self, data_source):
