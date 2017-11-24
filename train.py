@@ -66,10 +66,11 @@ parser.add_argument('--loss_type', default='reg', help='Type of the loss. reg|su
 parser.add_argument('--cnn_features', default=400, type=int, help='Hidden size of RNNs')
 parser.add_argument('--kernel', default=11, type=int, help='Kernel width')
 parser.add_argument('--stride', default=2, type=int, help='Stride in time')
-parser.add_argument('--crop_begin', default=40, type=int, help='Miliseconds to crop in the begning before training')
 parser.add_argument('--utterance_miliseconds', default=800, type=int, help='Miliseconds size of the utterances')
-parser.add_argument('--sample_proportion', default=1.0, type=float, help='Sample proportion to train')
+parser.add_argument('--sample_proportion', default=0.8, type=float, help='Sample proportion to train')
+parser.add_argument('--crop_begin', default=40, type=int, help='Miliseconds to crop in the begning before training')
 parser.add_argument('--crop_end', default=40, type=int, help='Miliseconds to crop in the end before training')
+parser.add_argument('--first_layer_type', default='NONE', help='Type of first layer to be used. none|conv|avgpool are supported')
 ########
 parser.set_defaults(cuda=False, silent=False, checkpoint=False, visdom=False, augment=False, tensorboard=False, log_params=False, no_bucketing=False)
 
@@ -108,8 +109,11 @@ def main():
     rnn_type = args.rnn_type.lower()
     assert rnn_type in supported_rnns, "rnn_type should be either lstm, rnn or gru"
 
+    print("FIRST LAYER TYPE:\t", args.first_layer_type)
+
     model = DeepSpeech(rnn_hidden_size=args.hidden_size, nb_layers=args.hidden_layers, rnn_type=supported_rnns[rnn_type],
-                       audio_conf=audio_conf, bidirectional=True, cnn_features=args.cnn_features, kernel=args.kernel, stride=args.stride)
+                       audio_conf=audio_conf, bidirectional=True, cnn_features=args.cnn_features, kernel=args.kernel,
+                       first_layer_type=args.first_layer_type, stride=args.stride)
 
     ########
     #print(list(model.rnns.modules()))
@@ -139,7 +143,8 @@ def main():
     epoch_95 = None
     epoch_99 = None
 
-    #utterance_sequence_length = int(args.utterance_miliseconds / 10)
+    utterance_sequence_length = int(args.utterance_miliseconds / 10)
+
     loss_begin = round(args.crop_begin / (10 * args.stride))
     loss_end = -round(args.crop_end / (10 * args.stride)) or None
     #print("LOSS BEGIN:", loss_begin)
@@ -153,9 +158,12 @@ def main():
 
     batch_time = AverageMeter()
     data_time = AverageMeter()
-    losses = AverageMeter()
+    #losses = AverageMeter()
+
+    print(args, "\n")
 
     for epoch in range(start_epoch, args.epochs):
+        losses = AverageMeter()
         scheduler.step()
         optim_state_now = optimizer.state_dict()
         print('\nLEARNING RATE: {lr:.6f}'.format(lr=optim_state_now['param_groups'][0]['lr']))
@@ -188,15 +196,15 @@ def main():
 
             ########
             ########
-            print("INPUTS SIZE: ====>>>>>", inputs.size())
+            #print("INPUTS SIZE: ====>>>>>", inputs.size())
             start = random.randint(0, int((inputs.size(3)-1)*(1-args.sample_proportion)))
             duration = int((inputs.size(3))*(args.sample_proportion))
-            #start = random.randint(0, (inputs.size(3)-1)-utternace_sequence_length)
-            #duration = utternace_sequence_length
-            utterances = inputs[...,start:start+duration]
-            print("UTTERS SIZE: ====>>>>>", utterances.size(), start, start+duration)
-            out = model(utterances) # <<<<<<====== THIS IS THE MOST IMPORTANT CODE OF THE OVERALL PROJECT
-            print("OUTPUT SIZE: ====>>>>>", out.size())
+            #start = random.randint(0, (inputs.size(3)-1)-utterance_sequence_length)
+            #duration = utterance_sequence_length
+            utterances = inputs[...,start:start+duration] # <<<<<<====== THIS IS THE MOST IMPORTANT CODE OF THE PROJECT
+            #print("UTTERS SIZE: ====>>>>>", utterances.size(), start, start+duration)
+            out = model(utterances)
+            #print("OUTPUT SIZE: ====>>>>>", out.size())
             out = out.transpose(0, 1)  # TxNxH
             ########
             ########
@@ -218,14 +226,17 @@ def main():
             #print(out[-1].size())
 
             if args.loss_type == "reg":
-                loss_out = out[round(out.size(0)/2)]; loss_speaker_labels = speaker_labels
+                procssed_out = out[round(out.size(0)/2)]; procssed_speaker_labels = speaker_labels
             elif args.loss_type == "sum":
-                loss_out = torch.sum(out[loss_begin:loss_end], 0); loss_speaker_labels = speaker_labels
-            elif args.loss_type == "full":
-                loss_out = out.contiguous()[loss_begin:loss_end].view(-1,48); loss_speaker_labels = speaker_labels.repeat(out.size(0),1)[loss_begin:loss_end].view(-1) #speaker_labels = speaker_labels.expand(20, out.size(0))
-            #print("LOSS_OUT: " + str(loss_out.size()), "SPEAKER LABELS:" + str(loss_speaker_labels.size()))
+                #procssed_out = torch.sum(out[loss_begin:loss_end], 0); procssed_speaker_labels = speaker_labels
+                procssed_out = torch.sum(out, 0); procssed_speaker_labels = speaker_labels
+            #elif args.loss_type == "full":
+            #    #procssed_out = out.contiguous()[loss_begin:loss_end].view(-1,48); procssed_speaker_labels = speaker_labels.repeat(out.size(0),1)[loss_begin:loss_end].view(-1) #speaker_labels = speaker_labels.expand(20, out.size(0))
+            #    procssed_out = out.contiguous().view(-1, 48); procssed_speaker_labels = speaker_labels.repeat(out.size(0),1).view(-1)  # speaker_labels = speaker_labels.expand(20, out.size(0))
+            #print("OUT: " + str(out.size()), "SPEAKER LABELS:" + str(speaker_labels.size()))
+            #print("PROCSSED OUT: " + str(procssed_out.size()), "PROCSSED SPEAKER LABELS:" + str(procssed_speaker_labels.size()))
 
-            loss = criterion(loss_out, loss_speaker_labels)
+            loss = criterion(procssed_out, procssed_speaker_labels)
             loss = loss / inputs.size(0)  # average the loss by minibatch
             loss_sum = loss.data.sum()
             inf = float("inf")
@@ -237,7 +248,8 @@ def main():
             avg_loss += loss_value
             losses.update(loss_value, inputs.size(0))
 
-            class_accu.add(out[round(out.size(0)/2)].data, speaker_labels.data)
+            #class_accu.add(out[round(out.size(0)/2)].data, speaker_labels.data)
+            class_accu.add(procssed_out.data, procssed_speaker_labels.data)
 
             #accu_out3 = torch.sum(flex_softmax(out[20:], axis=2), 0)
             #print(classaccu.value()[0], classaccu.value()[1])
@@ -272,15 +284,16 @@ def main():
 
             del loss
             del out
-            del loss_out
+            del procssed_out
             del speaker_labels
-            del loss_speaker_labels
+            del procssed_speaker_labels
 
         avg_loss /= len(train_loader)
 
         if (best_avg_loss > avg_loss): best_avg_loss = avg_loss
 
-        print("\nCURRENT EPOCH TRAINING RESULTS:\t", class_accu.value()[0], "\t")
+        print("\nCURRENT EPOCH AVERAGE LOSS:\t", avg_loss)
+        print("\nCURRENT EPOCH TRAINING RESULTS:\t", class_accu.value()[0], "\n")
 
         if (best_train_accu < class_accu.value()[0]): best_train_accu = class_accu.value()[0]
 
@@ -322,11 +335,11 @@ def main():
             #print("INPUTS SIZE: ====>>>>>", inputs.size())
             start = random.randint(0, int((inputs.size(3)-1)*(1-args.sample_proportion)))
             duration = int((inputs.size(3))*(args.sample_proportion))
-            #start = random.randint(0, (inputs.size(3)-1)-utternace_sequence_length)
-            #duration = utternace_sequence_length
-            utterances = inputs#[...,start:start+duration]
+            #start = random.randint(0, (inputs.size(3)-1)-utterance_sequence_length)
+            #duration = utterance_sequence_length
+            utterances = inputs#[...,start:start+duration] # <<<<<<====== THIS IS THE MOST IMPORTANT CODE OF THE PROJECT
             #print("UTTERS SIZE: ====>>>>>", utterances.size(), start, start+duration)
-            out = model(utterances) # <<<<<<====== THIS IS THE MOST IMPORTANT CODE OF THE OVERALL PROJECT
+            out = model(utterances)
             #print("OUTPUT SIZE: ====>>>>>", out.size())
             out = out.transpose(0, 1)  # TxNxH
             ########
@@ -344,7 +357,19 @@ def main():
             #print(softmax_output_alt[0][0])
             ########
 
-            class_accu.add(out[round(out.size(0)/2)].data, speaker_labels.data)
+            if args.loss_type == "reg":
+                procssed_out = out[round(out.size(0)/2)]; procssed_speaker_labels = speaker_labels
+            elif args.loss_type == "sum":
+                #procssed_out = torch.sum(out[loss_begin:loss_end], 0); procssed_speaker_labels = speaker_labels
+                procssed_out = torch.sum(out, 0); procssed_speaker_labels = speaker_labels
+            #elif args.loss_type == "full":
+            #    #procssed_out = out.contiguous()[loss_begin:loss_end].view(-1,48); procssed_speaker_labels = speaker_labels.repeat(out.size(0),1)[loss_begin:loss_end].view(-1) #speaker_labels = speaker_labels.expand(20, out.size(0))
+            #    procssed_out = out.contiguous().view(-1, 48); procssed_speaker_labels = speaker_labels.repeat(out.size(0),1).view(-1)  # speaker_labels = speaker_labels.expand(20, out.size(0))
+            #print("OUT: " + str(out.size()), "SPEAKER LABELS:" + str(speaker_labels.size()))
+            #print("PROCSSED OUT: " + str(procssed_out.size()), "PROCSSED SPEAKER LABELS:" + str(procssed_speaker_labels.size()))
+
+            #class_accu.add(out[round(out.size(0)/2)].data, speaker_labels.data)
+            class_accu.add(procssed_out.data, procssed_speaker_labels.data)
 
             print('Validation Summary Epoch: [{0}]\t'
                   'CAR {car:.3f}\t'
@@ -358,14 +383,15 @@ def main():
         print("\nCURRENT EPOCH TEST RESULTS:\t", class_accu.value()[0])
         if (best_test_accu < class_accu.value()[0]): best_test_accu = class_accu.value()[0]
 
+        print("\nBEST AVERAGE LOSS:\t\t", best_avg_loss)
         print("\nBEST EPOCH TRAINING RESULTS:\t", best_train_accu)
         print("\nBEST EPOCH TEST RESULTS:\t", best_test_accu)
-        print("\nEPOCHS 70%, 90%, 95%, 99%:\t", epoch_70, "\t", epoch_90, "\t", epoch_95, "\t", epoch_99)
-        print("\nBEST AVERAGE LOSS:\t", best_avg_loss, "\n")
+        print("\nEPOCHS 70%, 90%, 95%, 99%:\t", epoch_70, "\t", epoch_90, "\t", epoch_95, "\t", epoch_99, "\n")
 
         torch.save(DeepSpeech.serialize(model, optimizer=optimizer, epoch=epoch), args.model_path)
 
         avg_loss = 0
+
         if not args.no_bucketing and epoch == 0:
             print("Switching to bucketing sampler for following epochs")
             train_dataset = SpectrogramDatasetWithLength(audio_conf=audio_conf, manifest_filepath=args.train_manifest, normalize=True, augment=args.augment)

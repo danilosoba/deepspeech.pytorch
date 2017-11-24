@@ -1,17 +1,27 @@
 LD_PRELOAD=/usr/lib/x86_64-linux-gnu/libgomp.so.1 python train.py \
 --train_manifest data/mit_train_speaker_identification.csv --val_manifest data/mit_val_speaker_identification.csv --cuda --batch_size 20 \
---loss_type reg --learning-rate 0.05 --learning_rate_decay_rate 0.2 --learning_rate_decay_epochs 500 500 --epochs 300 --hidden_layers 2 --hidden_size 256 --cnn_features 256 \
---kernel 11 --stride 3 --crop_begin 100 --crop_end 100 --sample_proportion 0.8 #| tee spect.log
+--loss_type reg --learning-rate 0.05 --epochs 300 --hidden_layers 1 --hidden_size 400 --cnn_features 400 --kernel 11 --stride 3 \
+--sample_proportion 0.8 --first_layer_type NONE | tee spect_reg_lr0.05-0.99_train-prop0.8_test-full_arch-none-rnn1x400.log
 
-#LD_PRELOAD=/usr/lib/x86_64-linux-gnu/libgomp.so.1 python train.py \
-#--train_manifest data/mit_train_speaker_identification.csv --val_manifest data/mit_val_speaker_identification.csv --cuda --batch_size 20 \
-#--loss_type reg --learning-rate 0.05 --learning_rate_decay_rate 0.2 --learning_rate_decay_epochs 500 500 --epochs 100 --hidden_layers 2 --hidden_size 300 --cnn_features 300 \
-#--kernel 3 --stride 1 --crop_begin 100 --crop_end 100 --sample_proportion 0.8 | tee logs/reg_sample0.8_crop100x100_conv3x1_arch300x300x2_lr0.05.txt
+LD_PRELOAD=/usr/lib/x86_64-linux-gnu/libgomp.so.1 python train.py \
+--train_manifest data/mit_train_speaker_identification.csv --val_manifest data/mit_val_speaker_identification.csv --cuda --batch_size 20 \
+--loss_type reg --learning-rate 0.05 --epochs 300 --hidden_layers 1 --hidden_size 400 --cnn_features 400 --kernel 11 --stride 3 \
+--sample_proportion 0.8 --first_layer_type CONV | tee spect_reg_lr0.05-0.99_train-prop0.8_test-full_arch-conv-rnn1x400.log
 
-#LD_PRELOAD=/usr/lib/x86_64-linux-gnu/libgomp.so.1 python train.py \
-#--train_manifest data/mit_train_speaker_identification.csv --val_manifest data/mit_val_speaker_identification.csv --cuda --batch_size 20 \
-#--loss_type reg --learning-rate 0.05 --learning_rate_decay_rate 0.2 --learning_rate_decay_epochs 500 500 --epochs 100 --hidden_layers 2 --hidden_size 300 --cnn_features 300 \
-#--kernel 1 --stride 1 --crop_begin 100 --crop_end 100 --sample_proportion 0.8 | tee logs/reg_sample0.8_crop100x100_conv1x1_arch300x300x2_lr0.05.txt
+LD_PRELOAD=/usr/lib/x86_64-linux-gnu/libgomp.so.1 python train.py \
+--train_manifest data/mit_train_speaker_identification.csv --val_manifest data/mit_val_speaker_identification.csv --cuda --batch_size 20 \
+--loss_type reg --learning-rate 0.05 --epochs 300 --hidden_layers 1 --hidden_size 600 --cnn_features 600 --kernel 11 --stride 3 \
+--sample_proportion 0.8 --first_layer_type CONV | tee spect_reg_lr0.05-0.99_train-prop0.8_test-full_arch-conv-rnn1x600.log
+
+LD_PRELOAD=/usr/lib/x86_64-linux-gnu/libgomp.so.1 python train.py \
+--train_manifest data/mit_train_speaker_identification.csv --val_manifest data/mit_val_speaker_identification.csv --cuda --batch_size 20 \
+--loss_type reg --learning-rate 0.05 --epochs 300 --hidden_layers 1 --hidden_size 400 --cnn_features 400 --kernel 11 --stride 3 \
+--sample_proportion 0.8 --first_layer_type AVGPOOL | tee spect_reg_lr0.05-0.99_train-prop0.8_test-full_arch-avgpool-rnn1x400.log
+
+LD_PRELOAD=/usr/lib/x86_64-linux-gnu/libgomp.so.1 python train.py \
+--train_manifest data/mit_train_speaker_identification.csv --val_manifest data/mit_val_speaker_identification.csv --cuda --batch_size 20 \
+--loss_type reg --learning-rate 0.05 --epochs 300 --hidden_layers 1 --hidden_size 600 --cnn_features 600 --kernel 11 --stride 3 \
+--sample_proportion 0.8 --first_layer_type AVGPOOL | tee spect_reg_lr0.05-0.99_train-prop0.8_test-full_arch-avgpool-rnn1x600.log
 
 #############################################################################
 

@@ -65,22 +65,24 @@ class BatchRNN(nn.Module):
         return x
 
 class DeepSpeech(nn.Module):
-    def __init__(self, rnn_type=nn.LSTM, rnn_hidden_size=768, nb_layers=5, audio_conf=None, bidirectional=True, cnn_features=768, kernel=11, stride=2):
+    def __init__(self, rnn_type=nn.LSTM, rnn_hidden_size=768, nb_layers=5, audio_conf=None, bidirectional=True,
+                 cnn_features=768, first_layer_type="none", num_classes=48, kernel=11, stride=2):
         super(DeepSpeech, self).__init__()
         # model metadata needed for serialization/deserialization
         if audio_conf is None:
             audio_conf = {}
         self._version = '0.0.1'
         self._cnn_features = cnn_features
+        self._first_layer_type = first_layer_type
         self._kernel = kernel
         self._stride = stride
         self._hidden_size = rnn_hidden_size
         self._hidden_layers = nb_layers
         self._rnn_type = rnn_type
         self._audio_conf = audio_conf or {}
+        #self._num_classes = num_classes
         sample_rate = self._audio_conf.get("sample_rate", 16000)
         window_size = self._audio_conf.get("window_size", 0.02)
-        num_classes = 48
 
         """
         self.conv = nn.Sequential(
@@ -98,25 +100,33 @@ class DeepSpeech(nn.Module):
         rnn_input_size *= 32
         """
 
-        """
-        self.conv = nn.Sequential(
-            nn.Conv2d(1, cnn_features, kernel_size=(161, kernel), stride=(stride, stride)),
-            nn.BatchNorm2d(cnn_features),
-            nn.Hardtanh(0, 20, inplace=True),
-        )
         ## Based on above convolutions and spectrogram size using conv formula (W - F + 2P)/ S+1
-        rnn_input_size = int(math.floor((sample_rate * window_size) / 2) + 1)
-        rnn_input_size = int(math.floor(rnn_input_size - 161) / 2 + 1)
-        rnn_input_size *= cnn_features # <<-- To work without mfcc...
-        """
+        #rnn_input_size = int(math.floor((sample_rate * window_size) / 2) + 1)
+        #rnn_input_size = int(math.floor(rnn_input_size - 161) / 2 + 1)
+        #rnn_input_size *= cnn_features # <<-- To work without mfcc...
 
         # To work witout conv...
-        rnn_input_size = 161 #<<<<<----- Coment to work with conv...
+        #rnn_input_size = 161 #<<<<<----- Coment to work with conv...
         #cnn_features = 161
         #rnn_input_size = cnn_features # <<-- To work with mfcc...
 
-        print("CNN FEATURES:", cnn_features)
-        print("RNN INPUT SIZE:", rnn_input_size)
+        if self._first_layer_type == "NONE":
+            rnn_input_size = 161
+        elif self._first_layer_type == "CONV":
+            self.conv = nn.Sequential(
+                nn.Conv2d(1, cnn_features, kernel_size=(161, kernel), stride=(stride, stride)),
+                nn.BatchNorm2d(cnn_features),
+                nn.Hardtanh(0, 20, inplace=True),
+            )
+            #rnn_input_size = int(math.floor((sample_rate * window_size) / 2) + 1)
+            #rnn_input_size = int(math.floor(rnn_input_size - 161) / 2 + 1)
+            #rnn_input_size *= cnn_features  # <<-- To work without mfcc...
+            rnn_input_size = cnn_features
+        elif self._first_layer_type == "AVGPOOL":
+            self.avgpool = nn.AvgPool1d(kernel, stride=stride)
+            rnn_input_size = 161
+
+        print("RECURRENCY INPUT SIZE:\t", rnn_input_size)
 
         rnns = []
         rnn = BatchRNN(input_size=rnn_input_size, hidden_size=rnn_hidden_size, rnn_type=rnn_type,
@@ -134,18 +144,26 @@ class DeepSpeech(nn.Module):
         self.fc = nn.Sequential(
             SequenceWise(fully_connected),
         )
-        self.inference_log_softmax = InferenceBatchLogSoftmax()
+        #self.inference_log_softmax = InferenceBatchLogSoftmax()
 
     def forward(self, x):
-        #x = self.conv(x) #<<<<<----- Coment to work without conv...
-        sizes = x.size()
-        x = x.view(sizes[0], sizes[1] * sizes[2], sizes[3])  # Collapse feature dimension
+        if self._first_layer_type == "NONE":
+            sizes = x.size()
+            x = x.view(sizes[0], sizes[1] * sizes[2], sizes[3])  # Collapse feature dimension
+        elif self._first_layer_type == "CONV":
+            x = self.conv(x)
+            sizes = x.size()
+            x = x.view(sizes[0], sizes[1] * sizes[2], sizes[3])  # Collapse feature dimension
+        elif self._first_layer_type == "AVGPOOL":
+            sizes = x.size()
+            x = x.view(sizes[0], sizes[1] * sizes[2], sizes[3])  # Collapse feature dimension
+            x = self.avgpool(x)
         x = x.transpose(1, 2).transpose(0, 1).contiguous()  # TxNxH
         x = self.rnns(x)
         x = self.fc(x)
         x = x.transpose(0, 1)
         # identity in training mode, logsoftmax in eval mode
-        x = self.inference_log_softmax(x)
+        #x = self.inference_log_softmax(x)
         return x
 
     @classmethod
