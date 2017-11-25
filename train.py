@@ -71,6 +71,7 @@ parser.add_argument('--sample_proportion', default=0.8, type=float, help='Sample
 parser.add_argument('--crop_begin', default=40, type=int, help='Miliseconds to crop in the begning before training')
 parser.add_argument('--crop_end', default=40, type=int, help='Miliseconds to crop in the end before training')
 parser.add_argument('--first_layer_type', default='NONE', help='Type of first layer to be used. none|conv|avgpool are supported')
+parser.add_argument('--mfcc', default='false', help='If "true", mfcc will be used')
 ########
 parser.set_defaults(cuda=False, silent=False, checkpoint=False, visdom=False, augment=False, tensorboard=False, log_params=False, no_bucketing=False)
 
@@ -110,10 +111,11 @@ def main():
     assert rnn_type in supported_rnns, "rnn_type should be either lstm, rnn or gru"
 
     print("FIRST LAYER TYPE:\t", args.first_layer_type)
+    print("MFCC TRANSFORM:\t\t", args.mfcc)
 
     model = DeepSpeech(rnn_hidden_size=args.hidden_size, nb_layers=args.hidden_layers, rnn_type=supported_rnns[rnn_type],
                        audio_conf=audio_conf, bidirectional=True, cnn_features=args.cnn_features, kernel=args.kernel,
-                       first_layer_type=args.first_layer_type, stride=args.stride)
+                       first_layer_type=args.first_layer_type, stride=args.stride, mfcc=args.mfcc)
 
     ########
     #print(list(model.rnns.modules()))
@@ -182,8 +184,8 @@ def main():
             inputs = Variable(inputs, requires_grad=False)
 
             ########
-            #mfccs = Variable(mfccs, requires_grad=False)
-            #inputs = mfccs # <<-- This line makes us to use mfccs...
+            mfccs = Variable(mfccs, requires_grad=False)
+            if args.mfcc == "true" : inputs = mfccs # <<-- This line makes us to use mfccs...
             #print("INPUTS SIZE:", inputs.size())
             #print("MFCCS SIZE:", mfccs.size())
             ########
@@ -318,8 +320,8 @@ def main():
             inputs = Variable(inputs, volatile=True)
 
             ########
-            #mfccs = Variable(mfccs, requires_grad=False)
-            #inputs = mfccs # <<-- This line makes us to use mfccs...
+            mfccs = Variable(mfccs, requires_grad=False)
+            if args.mfcc == "true" : inputs = mfccs # <<-- This line makes us to use mfccs...
             #print("INPUTS SIZE:", inputs.size())
             #print("MFCCS SIZE:", mfccs.size())
             ########
@@ -337,7 +339,7 @@ def main():
             duration = int((inputs.size(3))*(args.sample_proportion))
             #start = random.randint(0, (inputs.size(3)-1)-utterance_sequence_length)
             #duration = utterance_sequence_length
-            utterances = inputs#[...,start:start+duration] # <<<<<<====== THIS IS THE MOST IMPORTANT CODE OF THE PROJECT
+            utterances = inputs[...,start:start+duration] # <<<<<<====== THIS IS THE MOST IMPORTANT CODE OF THE PROJECT
             #print("UTTERS SIZE: ====>>>>>", utterances.size(), start, start+duration)
             out = model(utterances)
             #print("OUTPUT SIZE: ====>>>>>", out.size())

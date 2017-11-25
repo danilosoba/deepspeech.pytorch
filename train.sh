@@ -1,27 +1,32 @@
-LD_PRELOAD=/usr/lib/x86_64-linux-gnu/libgomp.so.1 python train.py \
---train_manifest data/mit_train_speaker_identification.csv --val_manifest data/mit_val_speaker_identification.csv --cuda --batch_size 20 \
---loss_type reg --learning-rate 0.05 --epochs 300 --hidden_layers 1 --hidden_size 400 --cnn_features 400 --kernel 11 --stride 3 \
---sample_proportion 0.8 --first_layer_type NONE | tee spect_reg_lr0.05-0.99_train-prop0.8_test-full_arch-none-rnn1x400.log
+#LD_PRELOAD=/usr/lib/x86_64-linux-gnu/libgomp.so.1 python train.py \
+#--train_manifest data/mit_train_speaker_identification.csv --val_manifest data/mit_val_speaker_identification.csv --cuda --batch_size 20 \
+#--loss_type reg --learning-rate 0.05 --epochs 300 --hidden_layers 2 --hidden_size 600 --cnn_features 600 --kernel 11 --stride 3 \
+#--sample_proportion 0.8 --first_layer_type CONV --mfcc false #| tee spect_reg_lr0.05-0.99_train-prop0.8_test-prop0.8_arch-conv600x11x3-rnn2x600.log
+
+#LD_PRELOAD=/usr/lib/x86_64-linux-gnu/libgomp.so.1 python train.py \
+#--train_manifest data/mit_train_speaker_identification.csv --val_manifest data/mit_val_speaker_identification.csv --cuda --batch_size 20 \
+#--loss_type reg --learning-rate 0.05 --epochs 300 --hidden_layers 2 --hidden_size 600 --cnn_features 600 --kernel 11 --stride 3 \
+#--sample_proportion 0.8 --first_layer_type AVGPOOL --mfcc false #| tee spect_reg_lr0.05-0.99_train-prop0.8_test-prop0.8_arch-avgpool11x3-rnn2x600.log
+
+#LD_PRELOAD=/usr/lib/x86_64-linux-gnu/libgomp.so.1 python train.py \
+#--train_manifest data/mit_train_speaker_identification.csv --val_manifest data/mit_val_speaker_identification.csv --cuda --batch_size 20 \
+#--loss_type reg --learning-rate 0.05 --epochs 300 --hidden_layers 2 --hidden_size 600 --cnn_features 600 --kernel 11 --stride 3 \
+#--sample_proportion 0.8 --first_layer_type NONE --mfcc false #| tee spect_reg_lr0.05-0.99_train-prop0.8_test-prop0.8_arch-none-rnn2x600.log
 
 LD_PRELOAD=/usr/lib/x86_64-linux-gnu/libgomp.so.1 python train.py \
 --train_manifest data/mit_train_speaker_identification.csv --val_manifest data/mit_val_speaker_identification.csv --cuda --batch_size 20 \
---loss_type reg --learning-rate 0.05 --epochs 300 --hidden_layers 1 --hidden_size 400 --cnn_features 400 --kernel 11 --stride 3 \
---sample_proportion 0.8 --first_layer_type CONV | tee spect_reg_lr0.05-0.99_train-prop0.8_test-full_arch-conv-rnn1x400.log
+--loss_type reg --learning-rate 0.05 --epochs 300 --hidden_layers 2 --hidden_size 600 --cnn_features 600 --kernel 11 --stride 3 \
+--sample_proportion 0.8 --first_layer_type CONV --mfcc true #| tee mfcc_reg_lr0.05-0.99_train-prop0.8_test-prop0.8_arch-conv600x11x3-rnn2x600.log
 
 LD_PRELOAD=/usr/lib/x86_64-linux-gnu/libgomp.so.1 python train.py \
 --train_manifest data/mit_train_speaker_identification.csv --val_manifest data/mit_val_speaker_identification.csv --cuda --batch_size 20 \
---loss_type reg --learning-rate 0.05 --epochs 300 --hidden_layers 1 --hidden_size 600 --cnn_features 600 --kernel 11 --stride 3 \
---sample_proportion 0.8 --first_layer_type CONV | tee spect_reg_lr0.05-0.99_train-prop0.8_test-full_arch-conv-rnn1x600.log
+--loss_type reg --learning-rate 0.05 --epochs 300 --hidden_layers 2 --hidden_size 600 --cnn_features 600 --kernel 11 --stride 3 \
+--sample_proportion 0.8 --first_layer_type AVGPOOL --mfcc true #| tee mfcc_reg_lr0.05-0.99_train-prop0.8_test-prop0.8_arch-avgpool11x3-rnn2x600.log
 
 LD_PRELOAD=/usr/lib/x86_64-linux-gnu/libgomp.so.1 python train.py \
 --train_manifest data/mit_train_speaker_identification.csv --val_manifest data/mit_val_speaker_identification.csv --cuda --batch_size 20 \
---loss_type reg --learning-rate 0.05 --epochs 300 --hidden_layers 1 --hidden_size 400 --cnn_features 400 --kernel 11 --stride 3 \
---sample_proportion 0.8 --first_layer_type AVGPOOL | tee spect_reg_lr0.05-0.99_train-prop0.8_test-full_arch-avgpool-rnn1x400.log
-
-LD_PRELOAD=/usr/lib/x86_64-linux-gnu/libgomp.so.1 python train.py \
---train_manifest data/mit_train_speaker_identification.csv --val_manifest data/mit_val_speaker_identification.csv --cuda --batch_size 20 \
---loss_type reg --learning-rate 0.05 --epochs 300 --hidden_layers 1 --hidden_size 600 --cnn_features 600 --kernel 11 --stride 3 \
---sample_proportion 0.8 --first_layer_type AVGPOOL | tee spect_reg_lr0.05-0.99_train-prop0.8_test-full_arch-avgpool-rnn1x600.log
+--loss_type reg --learning-rate 0.05 --epochs 300 --hidden_layers 2 --hidden_size 600 --cnn_features 600 --kernel 11 --stride 3 \
+--sample_proportion 0.8 --first_layer_type NONE --mfcc true #| tee mfcc_reg_lr0.05-0.99_train-prop0.8_test-prop0.8_arch-none-rnn2x600.log
 
 #############################################################################
 

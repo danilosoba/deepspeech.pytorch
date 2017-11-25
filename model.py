@@ -66,7 +66,7 @@ class BatchRNN(nn.Module):
 
 class DeepSpeech(nn.Module):
     def __init__(self, rnn_type=nn.LSTM, rnn_hidden_size=768, nb_layers=5, audio_conf=None, bidirectional=True,
-                 cnn_features=768, first_layer_type="none", num_classes=48, kernel=11, stride=2):
+                 cnn_features=768, first_layer_type="none", num_classes=48, kernel=11, stride=2, mfcc="false"):
         super(DeepSpeech, self).__init__()
         # model metadata needed for serialization/deserialization
         if audio_conf is None:
@@ -100,31 +100,24 @@ class DeepSpeech(nn.Module):
         rnn_input_size *= 32
         """
 
-        ## Based on above convolutions and spectrogram size using conv formula (W - F + 2P)/ S+1
-        #rnn_input_size = int(math.floor((sample_rate * window_size) / 2) + 1)
-        #rnn_input_size = int(math.floor(rnn_input_size - 161) / 2 + 1)
-        #rnn_input_size *= cnn_features # <<-- To work without mfcc...
-
-        # To work witout conv...
-        #rnn_input_size = 161 #<<<<<----- Coment to work with conv...
-        #cnn_features = 161
-        #rnn_input_size = cnn_features # <<-- To work with mfcc...
+        input_size = 40 if mfcc == "true" else 161
 
         if self._first_layer_type == "NONE":
-            rnn_input_size = 161
+            rnn_input_size = input_size
         elif self._first_layer_type == "CONV":
             self.conv = nn.Sequential(
-                nn.Conv2d(1, cnn_features, kernel_size=(161, kernel), stride=(stride, stride)),
+                nn.Conv2d(1, cnn_features, kernel_size=(input_size, kernel), stride=(stride, stride)),
                 nn.BatchNorm2d(cnn_features),
                 nn.Hardtanh(0, 20, inplace=True),
             )
+            ## Based on above convolutions and spectrogram size using conv formula (W - F + 2P)/ S+1
             #rnn_input_size = int(math.floor((sample_rate * window_size) / 2) + 1)
             #rnn_input_size = int(math.floor(rnn_input_size - 161) / 2 + 1)
             #rnn_input_size *= cnn_features  # <<-- To work without mfcc...
             rnn_input_size = cnn_features
         elif self._first_layer_type == "AVGPOOL":
             self.avgpool = nn.AvgPool1d(kernel, stride=stride)
-            rnn_input_size = 161
+            rnn_input_size = input_size
 
         print("RECURRENCY INPUT SIZE:\t", rnn_input_size)
 
