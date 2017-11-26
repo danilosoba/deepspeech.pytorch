@@ -110,8 +110,8 @@ def main():
     rnn_type = args.rnn_type.lower()
     assert rnn_type in supported_rnns, "rnn_type should be either lstm, rnn or gru"
 
-    print("FIRST LAYER TYPE:\t", args.first_layer_type)
-    print("MFCC TRANSFORM:\t\t", args.mfcc)
+    #print("FIRST LAYER TYPE:\t", args.first_layer_type)
+    #print("MFCC TRANSFORM:\t\t", args.mfcc)
 
     model = DeepSpeech(rnn_hidden_size=args.hidden_size, nb_layers=args.hidden_layers, rnn_type=supported_rnns[rnn_type],
                        audio_conf=audio_conf, bidirectional=True, cnn_features=args.cnn_features, kernel=args.kernel,
@@ -232,9 +232,9 @@ def main():
             elif args.loss_type == "sum":
                 #procssed_out = torch.sum(out[loss_begin:loss_end], 0); procssed_speaker_labels = speaker_labels
                 procssed_out = torch.sum(out, 0); procssed_speaker_labels = speaker_labels
-            #elif args.loss_type == "full":
-            #    #procssed_out = out.contiguous()[loss_begin:loss_end].view(-1,48); procssed_speaker_labels = speaker_labels.repeat(out.size(0),1)[loss_begin:loss_end].view(-1) #speaker_labels = speaker_labels.expand(20, out.size(0))
-            #    procssed_out = out.contiguous().view(-1, 48); procssed_speaker_labels = speaker_labels.repeat(out.size(0),1).view(-1)  # speaker_labels = speaker_labels.expand(20, out.size(0))
+            elif args.loss_type == "full":
+                #procssed_out = out.contiguous()[loss_begin:loss_end].view(-1,48); procssed_speaker_labels = speaker_labels.repeat(out.size(0),1)[loss_begin:loss_end].view(-1) #speaker_labels = speaker_labels.expand(20, out.size(0))
+                procssed_out = out.contiguous().view(-1, 48); procssed_speaker_labels = speaker_labels.repeat(out.size(0),1).view(-1)  # speaker_labels = speaker_labels.expand(20, out.size(0))
             #print("OUT: " + str(out.size()), "SPEAKER LABELS:" + str(speaker_labels.size()))
             #print("PROCSSED OUT: " + str(procssed_out.size()), "PROCSSED SPEAKER LABELS:" + str(procssed_speaker_labels.size()))
 
@@ -339,7 +339,7 @@ def main():
             duration = int((inputs.size(3))*(args.sample_proportion))
             #start = random.randint(0, (inputs.size(3)-1)-utterance_sequence_length)
             #duration = utterance_sequence_length
-            utterances = inputs#[...,start:start+duration] # <<<<<<====== THIS IS THE MOST IMPORTANT CODE OF THE PROJECT
+            utterances = inputs[...,start:start+duration] # <<<<<<====== THIS IS THE MOST IMPORTANT CODE OF THE PROJECT
             #print("UTTERS SIZE: ====>>>>>", utterances.size(), start, start+duration)
             out = model(utterances)
             #print("OUTPUT SIZE: ====>>>>>", out.size())
@@ -361,7 +361,7 @@ def main():
 
             if args.loss_type == "reg":
                 procssed_out = out[round(out.size(0)/2)]; procssed_speaker_labels = speaker_labels
-            elif args.loss_type == "sum":
+            elif args.loss_type == "sum" or "full":
                 #procssed_out = torch.sum(out[loss_begin:loss_end], 0); procssed_speaker_labels = speaker_labels
                 procssed_out = torch.sum(out, 0); procssed_speaker_labels = speaker_labels
             #elif args.loss_type == "full":
