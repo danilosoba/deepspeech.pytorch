@@ -339,7 +339,7 @@ def main():
             duration = int((inputs.size(3))*(args.sample_proportion))
             #start = random.randint(0, (inputs.size(3)-1)-utterance_sequence_length)
             #duration = utterance_sequence_length
-            utterances = inputs[...,start:start+duration] # <<<<<<====== THIS IS THE MOST IMPORTANT CODE OF THE PROJECT
+            utterances = inputs#[...,start:start+duration] # <<<<<<====== THIS IS THE MOST IMPORTANT CODE OF THE PROJECT
             #print("UTTERS SIZE: ====>>>>>", utterances.size(), start, start+duration)
             out = model(utterances)
             #print("OUTPUT SIZE: ====>>>>>", out.size())
