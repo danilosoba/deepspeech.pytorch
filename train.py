@@ -198,15 +198,19 @@ def main():
 
             ########
             ########
-            #print("INPUTS SIZE: ====>>>>>", inputs.size())
-            start = random.randint(0, int((inputs.size(3)-1)*(1-args.sample_proportion)))
-            duration = int((inputs.size(3))*(args.sample_proportion))
+            sizes = inputs.size()
+            inputs = inputs.view(sizes[0], sizes[1]*sizes[2], sizes[3])  # Collapse feature dimension
+            #print("INPUTS SIZE: ====>>>>>\t", inputs.size())
+            start = 0
+            duration = 64+4*8
+            #start = random.randint(0, int((inputs.size(3)-1)*(1-args.sample_proportion)))
+            #duration = int((inputs.size(3))*(args.sample_proportion))
             #start = random.randint(0, (inputs.size(3)-1)-utterance_sequence_length)
             #duration = utterance_sequence_length
             utterances = inputs[...,start:start+duration] # <<<<<<====== THIS IS THE MOST IMPORTANT CODE OF THE PROJECT
-            #print("UTTERS SIZE: ====>>>>>", utterances.size(), start, start+duration)
+            #print("UTTERS SIZE: ====>>>>>\t", utterances.size(), start, start+duration)
             out = model(utterances)
-            #print("OUTPUT SIZE: ====>>>>>", out.size())
+            #print("OUTPUT SIZE: ====>>>>>\t", out.size())
             out = out.transpose(0, 1)  # TxNxH
             ########
             ########
@@ -228,17 +232,18 @@ def main():
             #print(out[-1].size())
 
             if args.loss_type == "reg":
-                procssed_out = out[round(out.size(0)/2)]; procssed_speaker_labels = speaker_labels
+                processed_out = out[round(out.size(0)/2)]; processed_speaker_labels = speaker_labels
             elif args.loss_type == "sum":
-                #procssed_out = torch.sum(out[loss_begin:loss_end], 0); procssed_speaker_labels = speaker_labels
-                procssed_out = torch.sum(out, 0); procssed_speaker_labels = speaker_labels
+                #processed_out = torch.sum(out[loss_begin:loss_end], 0); processed_speaker_labels = speaker_labels
+                processed_out = torch.sum(out, 0); processed_speaker_labels = speaker_labels
             elif args.loss_type == "full":
-                #procssed_out = out.contiguous()[loss_begin:loss_end].view(-1,48); procssed_speaker_labels = speaker_labels.repeat(out.size(0),1)[loss_begin:loss_end].view(-1) #speaker_labels = speaker_labels.expand(20, out.size(0))
-                procssed_out = out.contiguous().view(-1, 48); procssed_speaker_labels = speaker_labels.repeat(out.size(0),1).view(-1)  # speaker_labels = speaker_labels.expand(20, out.size(0))
+                #processed_out = out.contiguous()[loss_begin:loss_end].view(-1,48); processed_speaker_labels = speaker_labels.repeat(out.size(0),1)[loss_begin:loss_end].view(-1) #speaker_labels = speaker_labels.expand(20, out.size(0))
+                processed_out = out.contiguous().view(-1, 48); processed_speaker_labels = speaker_labels.repeat(out.size(0),1).view(-1)  # speaker_labels = speaker_labels.expand(20, out.size(0))
             #print("OUT: " + str(out.size()), "SPEAKER LABELS:" + str(speaker_labels.size()))
-            #print("PROCSSED OUT: " + str(procssed_out.size()), "PROCSSED SPEAKER LABELS:" + str(procssed_speaker_labels.size()))
+            #print("PROC OUTPUT: ====>>>>>\t" + str(processed_out.size()))
+            #print("PROC LABELS: ====>>>>>\t" + str(processed_speaker_labels.size()))
 
-            loss = criterion(procssed_out, procssed_speaker_labels)
+            loss = criterion(processed_out, processed_speaker_labels)
             loss = loss / inputs.size(0)  # average the loss by minibatch
             loss_sum = loss.data.sum()
             inf = float("inf")
@@ -251,7 +256,7 @@ def main():
             losses.update(loss_value, inputs.size(0))
 
             #class_accu.add(out[round(out.size(0)/2)].data, speaker_labels.data)
-            class_accu.add(procssed_out.data, procssed_speaker_labels.data)
+            class_accu.add(processed_out.data, processed_speaker_labels.data)
 
             #accu_out3 = torch.sum(flex_softmax(out[20:], axis=2), 0)
             #print(classaccu.value()[0], classaccu.value()[1])
@@ -286,9 +291,9 @@ def main():
 
             del loss
             del out
-            del procssed_out
+            del processed_out
             del speaker_labels
-            del procssed_speaker_labels
+            del processed_speaker_labels
 
         avg_loss /= len(train_loader)
 
@@ -334,15 +339,19 @@ def main():
 
             ########
             ########
-            #print("INPUTS SIZE: ====>>>>>", inputs.size())
-            start = random.randint(0, int((inputs.size(3)-1)*(1-args.sample_proportion)))
-            duration = int((inputs.size(3))*(args.sample_proportion))
+            sizes = inputs.size()
+            inputs = inputs.view(sizes[0], sizes[1]*sizes[2], sizes[3])  # Collapse feature dimension
+            #print("INPUTS SIZE: ====>>>>>\t", inputs.size())
+            start = 0
+            duration = 64+4*8
+            #start = random.randint(0, int((inputs.size(3)-1)*(1-args.sample_proportion)))
+            #duration = int((inputs.size(3))*(args.sample_proportion))
             #start = random.randint(0, (inputs.size(3)-1)-utterance_sequence_length)
             #duration = utterance_sequence_length
             utterances = inputs[...,start:start+duration] # <<<<<<====== THIS IS THE MOST IMPORTANT CODE OF THE PROJECT
-            #print("UTTERS SIZE: ====>>>>>", utterances.size(), start, start+duration)
+            #print("UTTERS SIZE: ====>>>>>\t", utterances.size(), start, start+duration)
             out = model(utterances)
-            #print("OUTPUT SIZE: ====>>>>>", out.size())
+            #print("OUTPUT SIZE: ====>>>>>\t", out.size())
             out = out.transpose(0, 1)  # TxNxH
             ########
             ########
@@ -360,18 +369,19 @@ def main():
             ########
 
             if args.loss_type == "reg":
-                procssed_out = out[round(out.size(0)/2)]; procssed_speaker_labels = speaker_labels
+                processed_out = out[round(out.size(0)/2)]; processed_speaker_labels = speaker_labels
             elif args.loss_type == "sum" or "full":
-                #procssed_out = torch.sum(out[loss_begin:loss_end], 0); procssed_speaker_labels = speaker_labels
-                procssed_out = torch.sum(out, 0); procssed_speaker_labels = speaker_labels
+                #processed_out = torch.sum(out[loss_begin:loss_end], 0); processed_speaker_labels = speaker_labels
+                processed_out = torch.sum(out, 0); processed_speaker_labels = speaker_labels
             #elif args.loss_type == "full":
-            #    #procssed_out = out.contiguous()[loss_begin:loss_end].view(-1,48); procssed_speaker_labels = speaker_labels.repeat(out.size(0),1)[loss_begin:loss_end].view(-1) #speaker_labels = speaker_labels.expand(20, out.size(0))
-            #    procssed_out = out.contiguous().view(-1, 48); procssed_speaker_labels = speaker_labels.repeat(out.size(0),1).view(-1)  # speaker_labels = speaker_labels.expand(20, out.size(0))
+            #    #processed_out = out.contiguous()[loss_begin:loss_end].view(-1,48); processed_speaker_labels = speaker_labels.repeat(out.size(0),1)[loss_begin:loss_end].view(-1) #speaker_labels = speaker_labels.expand(20, out.size(0))
+            #    processed_out = out.contiguous().view(-1, 48); processed_speaker_labels = speaker_labels.repeat(out.size(0),1).view(-1)  # speaker_labels = speaker_labels.expand(20, out.size(0))
             #print("OUT: " + str(out.size()), "SPEAKER LABELS:" + str(speaker_labels.size()))
-            #print("PROCSSED OUT: " + str(procssed_out.size()), "PROCSSED SPEAKER LABELS:" + str(procssed_speaker_labels.size()))
+            #print("PROC OUTPUT: ====>>>>>\t" + str(processed_out.size()))
+            #print("PROC LABELS: ====>>>>>\t" + str(processed_speaker_labels.size()))
 
             #class_accu.add(out[round(out.size(0)/2)].data, speaker_labels.data)
-            class_accu.add(procssed_out.data, procssed_speaker_labels.data)
+            class_accu.add(processed_out.data, processed_speaker_labels.data)
 
             print('Validation Summary Epoch: [{0}]\t'
                   'CAR {car:.3f}\t'

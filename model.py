@@ -127,10 +127,10 @@ class DeepSpeech(nn.Module):
                 nn.Hardtanh(0, 20, inplace=True),
                 nn.MaxPool1d(2, stride=2),
                 # nn.Conv1d(cnn_features, 2*cnn_features, kernel, stride=stride, padding=1),
-                nn.Conv1d(4*cnn_features, 8*cnn_features, 3, stride=1, padding=1),
-                nn.BatchNorm1d(8*cnn_features),
-                nn.Hardtanh(0, 20, inplace=True),
-                nn.MaxPool1d(2, stride=2),
+                #nn.Conv1d(4*cnn_features, 8*cnn_features, 3, stride=1, padding=1),
+                #nn.BatchNorm1d(8*cnn_features),
+                #nn.Hardtanh(0, 20, inplace=True),
+                nn.AvgPool1d(8, stride=1),
             )
             ## Based on above convolutions and spectrogram size using conv formula (W - F + 2P)/ S+1
             #rnn_input_size = int(math.floor((sample_rate * window_size) / 2) + 1)
@@ -158,8 +158,8 @@ class DeepSpeech(nn.Module):
         #)
         """
         fully_connected = nn.Sequential(
-            nn.BatchNorm1d(8*cnn_features),
-            nn.Linear(8*cnn_features, num_classes, bias=False)
+            nn.BatchNorm1d(4*cnn_features),
+            nn.Linear(4*cnn_features, num_classes, bias=False)
         )
         self.fc = nn.Sequential(
             SequenceWise(fully_connected),
@@ -167,8 +167,9 @@ class DeepSpeech(nn.Module):
         #self.inference_log_softmax = InferenceBatchLogSoftmax()
 
     def forward(self, x):
-        sizes = x.size()
-        x = x.view(sizes[0], sizes[1] * sizes[2], sizes[3])  # Collapse feature dimension
+        #print("INPUT SIZE\t:", x.size())
+        #sizes = x.size()
+        #x = x.view(sizes[0], sizes[1]*sizes[2], sizes[3])  # Collapse feature dimension
         if self._first_layer_type == "CONV":
             x = self.cnns(x)
         elif self._first_layer_type == "AVGPOOL":
@@ -179,6 +180,7 @@ class DeepSpeech(nn.Module):
         x = x.transpose(0, 1)
         # identity in training mode, logsoftmax in eval mode
         #x = self.inference_log_softmax(x)
+        #print("OUTPUT SIZE\t:", x.size())
         return x
 
     @classmethod
