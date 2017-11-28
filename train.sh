@@ -1,22 +1,27 @@
 LD_PRELOAD=/usr/lib/x86_64-linux-gnu/libgomp.so.1 python train.py \
 --train_manifest data/mit_train_speaker_identification.csv --val_manifest data/mit_val_speaker_identification.csv --cuda --batch_size 20 \
 --loss_type full --learning-rate 0.05 --epochs 300 --cnn_features 32 --kernel 3 --stride 1 \
---sample_proportion 0.8 --first_layer_type CONV --mfcc false | tee spect_full_lr0.05-0.99_train-prop0.8_test-prop0.8_arch-conv32-64.log
+--sample_proportion 0.8 --first_layer_type CONV --mfcc false | tee spect_full_lr0.05-0.99_train-prop0.8_test-prop0.8_arch-conv32-64-128-256.log
+
+LD_PRELOAD=/usr/lib/x86_64-linux-gnu/libgomp.so.1 python train.py \
+--train_manifest data/mit_train_speaker_identification.csv --val_manifest data/mit_val_speaker_identification.csv --cuda --batch_size 20 \
+--loss_type full --learning-rate 0.1 --epochs 300 --cnn_features 32 --kernel 3 --stride 1 \
+--sample_proportion 0.8 --first_layer_type CONV --mfcc false | tee spect_full_lr0.1-0.99_train-prop0.8_test-prop0.8_arch-conv32-64-128-256.log
+
+LD_PRELOAD=/usr/lib/x86_64-linux-gnu/libgomp.so.1 python train.py \
+--train_manifest data/mit_train_speaker_identification.csv --val_manifest data/mit_val_speaker_identification.csv --cuda --batch_size 20 \
+--loss_type full --learning-rate 0.05 --epochs 300 --cnn_features 16 --kernel 3 --stride 1 \
+--sample_proportion 0.8 --first_layer_type CONV --mfcc false | tee spect_full_lr0.05-0.99_train-prop0.8_test-prop0.8_arch-conv16-32-64-128.log
 
 LD_PRELOAD=/usr/lib/x86_64-linux-gnu/libgomp.so.1 python train.py \
 --train_manifest data/mit_train_speaker_identification.csv --val_manifest data/mit_val_speaker_identification.csv --cuda --batch_size 20 \
 --loss_type full --learning-rate 0.05 --epochs 300 --cnn_features 64 --kernel 3 --stride 1 \
---sample_proportion 0.8 --first_layer_type CONV --mfcc false | tee spect_full_lr0.05-0.99_train-prop0.8_test-prop0.8_arch-conv64-128.log
+--sample_proportion 0.8 --first_layer_type CONV --mfcc false | tee spect_full_lr0.05-0.99_train-prop0.8_test-prop0.8_arch-conv64-128-256-512.log
 
 LD_PRELOAD=/usr/lib/x86_64-linux-gnu/libgomp.so.1 python train.py \
 --train_manifest data/mit_train_speaker_identification.csv --val_manifest data/mit_val_speaker_identification.csv --cuda --batch_size 20 \
 --loss_type full --learning-rate 0.05 --epochs 300 --cnn_features 128 --kernel 3 --stride 1 \
---sample_proportion 0.8 --first_layer_type CONV --mfcc false | tee spect_full_lr0.05-0.99_train-prop0.8_test-prop0.8_arch-conv128-256.log
-
-LD_PRELOAD=/usr/lib/x86_64-linux-gnu/libgomp.so.1 python train.py \
---train_manifest data/mit_train_speaker_identification.csv --val_manifest data/mit_val_speaker_identification.csv --cuda --batch_size 20 \
---loss_type full --learning-rate 0.05 --epochs 300 --cnn_features 256 --kernel 3 --stride 1 \
---sample_proportion 0.8 --first_layer_type CONV --mfcc false | tee spect_full_lr0.05-0.99_train-prop0.8_test-prop0.8_arch-conv256-512.log
+--sample_proportion 0.8 --first_layer_type CONV --mfcc false | tee spect_full_lr0.05-0.99_train-prop0.8_test-prop0.8_arch-conv128-256-512-1024.log
 
 # --hidden_layers 2 --hidden_size 600
 

@@ -121,6 +121,16 @@ class DeepSpeech(nn.Module):
                 nn.BatchNorm1d(2*cnn_features),
                 nn.Hardtanh(0, 20, inplace=True),
                 nn.MaxPool1d(2, stride=2),
+                # nn.Conv1d(cnn_features, 2*cnn_features, kernel, stride=stride, padding=1),
+                nn.Conv1d(2*cnn_features, 4*cnn_features, 3, stride=1, padding=1),
+                nn.BatchNorm1d(4*cnn_features),
+                nn.Hardtanh(0, 20, inplace=True),
+                nn.MaxPool1d(2, stride=2),
+                # nn.Conv1d(cnn_features, 2*cnn_features, kernel, stride=stride, padding=1),
+                nn.Conv1d(4*cnn_features, 8*cnn_features, 3, stride=1, padding=1),
+                nn.BatchNorm1d(8*cnn_features),
+                nn.Hardtanh(0, 20, inplace=True),
+                nn.MaxPool1d(2, stride=2),
             )
             ## Based on above convolutions and spectrogram size using conv formula (W - F + 2P)/ S+1
             #rnn_input_size = int(math.floor((sample_rate * window_size) / 2) + 1)
@@ -148,8 +158,8 @@ class DeepSpeech(nn.Module):
         #)
         """
         fully_connected = nn.Sequential(
-            nn.BatchNorm1d(2*cnn_features),
-            nn.Linear(2*cnn_features, num_classes, bias=False)
+            nn.BatchNorm1d(8*cnn_features),
+            nn.Linear(8*cnn_features, num_classes, bias=False)
         )
         self.fc = nn.Sequential(
             SequenceWise(fully_connected),
