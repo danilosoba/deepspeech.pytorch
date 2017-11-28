@@ -210,7 +210,7 @@ def main():
             utterances = inputs[...,start:start+duration] # <<<<<<====== THIS IS THE MOST IMPORTANT CODE OF THE PROJECT
             #print("UTTERS SIZE: ====>>>>>\t", utterances.size(), start, start+duration)
             out = model(utterances)
-            #print("OUTPUT SIZE: ====>>>>>\t", out.size())
+            print("OUTPUT SIZE: ====>>>>>\t", out.size())
             out = out.transpose(0, 1)  # TxNxH
             ########
             ########
