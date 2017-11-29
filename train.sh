@@ -5,7 +5,7 @@
 
 LD_PRELOAD=/usr/lib/x86_64-linux-gnu/libgomp.so.1 python train.py \
 --train_manifest data/mit_train_speaker_identification.csv --val_manifest data/mit_val_speaker_identification.csv --cuda --batch_size 20 \
---loss_type full --learning-rate 0.05 --epochs 300 --cnn_features 32 --kernel 3 --stride 1 \
+--loss_type reg --learning-rate 0.05 --epochs 300 --cnn_features 600 --kernel 11 --stride 3 --hidden_layers 1 --hidden_size 600 \
 --sample_proportion 0.8 --first_layer_type CONV --mfcc false #| tee spect_full_lr0.05-0.99_arch-conv32-64-128.log
 
 #LD_PRELOAD=/usr/lib/x86_64-linux-gnu/libgomp.so.1 python train.py \

@@ -111,26 +111,25 @@ class DeepSpeech(nn.Module):
             #    nn.Hardtanh(0, 20, inplace=True),
             #)
             self.cnns = nn.Sequential(
-                #nn.Conv1d(input_size, cnn_features, kernel, stride=stride, padding=1),
-                nn.Conv1d(input_size, cnn_features, 3, stride=1, padding=1),
+                nn.Conv1d(input_size, cnn_features, kernel, stride=stride),
                 nn.BatchNorm1d(cnn_features),
                 nn.Hardtanh(0, 20, inplace=True),
-                ####nn.MaxPool1d(2, stride=2), <<<<==== TOO BAD!!!
-                #nn.Conv1d(cnn_features, 2*cnn_features, kernel, stride=stride, padding=1),
-                nn.Conv1d(cnn_features, 2*cnn_features, 3, stride=1, padding=1),
-                nn.BatchNorm1d(2*cnn_features),
-                nn.Hardtanh(0, 20, inplace=True),
-                ####nn.MaxPool1d(2, stride=2), <<<<==== TOO BAD!!!
-                # nn.Conv1d(cnn_features, 2*cnn_features, kernel, stride=stride, padding=1),
-                nn.Conv1d(2*cnn_features, 4*cnn_features, 3, stride=1, padding=1),
-                nn.BatchNorm1d(4*cnn_features),
-                nn.Hardtanh(0, 20, inplace=True),
-                ####nn.MaxPool1d(2, stride=2), <<<<==== TOO BAD!!!
-                # nn.Conv1d(cnn_features, 2*cnn_features, kernel, stride=stride, padding=1),
-                #nn.Conv1d(4*cnn_features, 8*cnn_features, 3, stride=1, padding=1),
+                #nn.MaxPool1d(2, stride=2),# <<<<==== TOO BAD!!!
+                #nn.Conv1d(cnn_features, 2*cnn_features, kernel, stride=stride),
+                #nn.BatchNorm1d(2*cnn_features),
+                #nn.Hardtanh(0, 20, inplace=True),
+                #nn.MaxPool1d(2, stride=2),# <<<<==== TOO BAD!!!
+                #nn.Conv1d(2*cnn_features, 4*cnn_features, kernel, stride=stride),
+                #nn.BatchNorm1d(4*cnn_features),
+                #nn.Hardtanh(0, 20, inplace=True),
+                #nn.MaxPool1d(2, stride=2),# <<<<==== TOO BAD!!!
+                #nn.Conv1d(4*cnn_features, 8*cnn_features, kernel, stride=stride),
                 #nn.BatchNorm1d(8*cnn_features),
                 #nn.Hardtanh(0, 20, inplace=True),
-                #nn.AvgPool1d(8, stride=1), <<<<==== SOMETIMES GOOD SOMETIMES BAD!!!
+                #nn.MaxPool1d(2, stride=2),# <<<<==== TOO BAD!!!
+                ########
+                #nn.AvgPool1d(16, stride=1),# <<<<==== SOMETIMES GOOD SOMETIMES BAD!!!
+                ########
             )
             ## Based on above convolutions and spectrogram size using conv formula (W - F + 2P)/ S+1
             #rnn_input_size = int(math.floor((sample_rate * window_size) / 2) + 1)
@@ -141,7 +140,6 @@ class DeepSpeech(nn.Module):
             self.avgpool = nn.AvgPool1d(kernel, stride=stride)
             rnn_input_size = input_size
 
-        """
         print("RECURRENCY INPUT SIZE:\t", rnn_input_size)
         rnns = []
         rnn = BatchRNN(input_size=rnn_input_size, hidden_size=rnn_hidden_size, rnn_type=rnn_type,
@@ -151,16 +149,16 @@ class DeepSpeech(nn.Module):
             rnn = BatchRNN(input_size=rnn_hidden_size, hidden_size=rnn_hidden_size, rnn_type=rnn_type,
                            bidirectional=bidirectional)
             rnns.append(('%d' % (x + 1), rnn))
-        #self.rnns = nn.Sequential(OrderedDict(rnns))
-        #fully_connected = nn.Sequential(
-        #    nn.BatchNorm1d(rnn_hidden_size),
-        #    nn.Linear(rnn_hidden_size, num_classes, bias=False)
-        #)
-        """
+        self.rnns = nn.Sequential(OrderedDict(rnns))
         fully_connected = nn.Sequential(
-            nn.BatchNorm1d(4*cnn_features),
-            nn.Linear(4*cnn_features, num_classes, bias=False)
+            nn.BatchNorm1d(rnn_hidden_size),
+            nn.Linear(rnn_hidden_size, num_classes, bias=False)
         )
+
+        #fully_connected = nn.Sequential(
+        #    nn.BatchNorm1d(4*cnn_features),
+        #    nn.Linear(4*cnn_features, num_classes, bias=False)
+        #)
         self.fc = nn.Sequential(
             SequenceWise(fully_connected),
         )
@@ -175,7 +173,7 @@ class DeepSpeech(nn.Module):
         elif self._first_layer_type == "AVGPOOL":
             x = self.avgpool(x)
         x = x.transpose(1, 2).transpose(0, 1).contiguous()  # TxNxH
-        #x = self.rnns(x)
+        x = self.rnns(x)
         x = self.fc(x)
         x = x.transpose(0, 1)
         # identity in training mode, logsoftmax in eval mode

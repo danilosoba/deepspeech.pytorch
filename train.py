@@ -97,7 +97,8 @@ def main():
     args = parser.parse_args()
     torch.set_printoptions(profile="full")
     criterion = nn.CrossEntropyLoss()
-    class_accu = tnt.meter.ClassErrorMeter(topk=[1], accuracy=True)
+    class_accu_reg = tnt.meter.ClassErrorMeter(topk=[1], accuracy=True)
+    class_accu_sum = tnt.meter.ClassErrorMeter(topk=[1], accuracy=True)
 
     audio_conf = dict(sample_rate=args.sample_rate, window_size=args.window_size, window_stride=args.window_stride,
                       window=args.window, noise_dir=args.noise_dir, noise_prob=args.noise_prob, noise_levels=(args.noise_min, args.noise_max))
@@ -137,8 +138,10 @@ def main():
     avg_loss = 0
     start_epoch = 0
     start_iter = 0
-    best_train_accu = 0
-    best_test_accu = 0
+    best_train_accu_reg = 0
+    best_train_accu_sum = 0
+    best_test_accu_reg = 0
+    best_test_accu_sum = 0
     best_avg_loss = float("inf") # sys.float_info.max # 1000000
     epoch_70 = None
     epoch_90 = None
@@ -169,7 +172,8 @@ def main():
         scheduler.step()
         optim_state_now = optimizer.state_dict()
         print('\nLEARNING RATE: {lr:.6f}'.format(lr=optim_state_now['param_groups'][0]['lr']))
-        class_accu.reset()
+        class_accu_reg.reset()
+        class_accu_sum.reset()
         model.train()
         end = time.time()
 
@@ -201,16 +205,16 @@ def main():
             sizes = inputs.size()
             inputs = inputs.view(sizes[0], sizes[1]*sizes[2], sizes[3])  # Collapse feature dimension
             #print("INPUTS SIZE: ====>>>>>\t", inputs.size())
-            start = 0
-            duration = 64+4*8
-            #start = random.randint(0, int((inputs.size(3)-1)*(1-args.sample_proportion)))
-            #duration = int((inputs.size(3))*(args.sample_proportion))
+            #start = 0
+            #duration = 100
+            start = random.randint(0, int((inputs.size(2)-1)*(1-args.sample_proportion)))
+            duration = int((inputs.size(2))*(args.sample_proportion))
             #start = random.randint(0, (inputs.size(3)-1)-utterance_sequence_length)
             #duration = utterance_sequence_length
             utterances = inputs[...,start:start+duration] # <<<<<<====== THIS IS THE MOST IMPORTANT CODE OF THE PROJECT
             #print("UTTERS SIZE: ====>>>>>\t", utterances.size(), start, start+duration)
             out = model(utterances)
-            print("OUTPUT SIZE: ====>>>>>\t", out.size())
+            #print("OUTPUT SIZE: ====>>>>>\t", out.size())
             out = out.transpose(0, 1)  # TxNxH
             ########
             ########
@@ -230,6 +234,10 @@ def main():
             #print(out.size())
             #print(new_out.size())
             #print(out[-1].size())
+
+            class_accu_reg.add(out[round(out.size(0)/2)].data, speaker_labels.data)
+            class_accu_sum.add(torch.sum(out, 0).data, speaker_labels.data)
+            #class_accu_reg.add(processed_out.data, processed_speaker_labels.data)
 
             if args.loss_type == "reg":
                 processed_out = out[round(out.size(0)/2)]; processed_speaker_labels = speaker_labels
@@ -255,9 +263,6 @@ def main():
             avg_loss += loss_value
             losses.update(loss_value, inputs.size(0))
 
-            #class_accu.add(out[round(out.size(0)/2)].data, speaker_labels.data)
-            class_accu.add(processed_out.data, processed_speaker_labels.data)
-
             #accu_out3 = torch.sum(flex_softmax(out[20:], axis=2), 0)
             #print(classaccu.value()[0], classaccu.value()[1])
             # Cross Entropy Loss for a Sequence (Time Series) of Output?
@@ -270,13 +275,10 @@ def main():
             optimizer.zero_grad()
             loss.backward()
 
-            torch.nn.utils.clip_grad_norm(model.parameters(), args.max_norm)
+            #torch.nn.utils.clip_grad_norm(model.parameters(), args.max_norm)
 
             # SGD step
             optimizer.step()
-
-            if args.cuda:
-                torch.cuda.synchronize()
 
             # measure elapsed time
             batch_time.update(time.time() - end)
@@ -284,10 +286,14 @@ def main():
 
             if not args.silent:
                 print('Epoch: [{0}][{1}/{2}]\t'
-                      'Loss {loss.val:.4f} ({loss.avg:.4f})\t'
-                      'CAR {car:.3f}\t'
+                      'Loss {loss.val:.8f} ({loss.avg:.8f})\t'
+                      'CARR {carr:.2f}\t'
+                      'CARS {cars:.2f}\t'
                       .format((epoch + 1), (i + 1), len(train_loader), batch_time=batch_time, data_time=data_time,
-                              loss=losses, car=class_accu.value()[0]))
+                              loss=losses, carr=class_accu_reg.value()[0], cars=class_accu_sum.value()[0]))
+
+            if args.cuda:
+                torch.cuda.synchronize()
 
             del loss
             del out
@@ -300,23 +306,25 @@ def main():
         if (best_avg_loss > avg_loss): best_avg_loss = avg_loss
 
         print("\nCURRENT EPOCH AVERAGE LOSS:\t", avg_loss)
-        print("\nCURRENT EPOCH TRAINING RESULTS:\t", class_accu.value()[0], "\n")
+        print("\nCURRENT EPOCH TRAINING RESULTS:\t", class_accu_reg.value()[0], "\t", class_accu_sum.value()[0], "\n")
 
-        if (best_train_accu < class_accu.value()[0]): best_train_accu = class_accu.value()[0]
+        if (best_train_accu_reg < class_accu_reg.value()[0]): best_train_accu_reg = class_accu_reg.value()[0]
+        if (best_train_accu_sum < class_accu_sum.value()[0]): best_train_accu_sum = class_accu_sum.value()[0]
 
-        get_70 = (class_accu.value()[0] > 70)
+        get_70 = (class_accu_reg.value()[0] > 70)
         if ((epoch_70 is None) and (get_70 == True)): epoch_70 = epoch + 1
-        get_90 = (class_accu.value()[0] > 90)
+        get_90 = (class_accu_reg.value()[0] > 90)
         if ((epoch_90 is None) and (get_90 == True)): epoch_90 = epoch + 1
-        get_95 = (class_accu.value()[0] > 95)
+        get_95 = (class_accu_reg.value()[0] > 95)
         if ((epoch_95 is None) and (get_95 == True)): epoch_95 = epoch + 1
-        get_99 = (class_accu.value()[0] > 99)
+        get_99 = (class_accu_reg.value()[0] > 99)
         if ((epoch_99 is None) and (get_99 == True)): epoch_99 = epoch + 1
 
         start_iter = 0  # Reset start iteration for next epoch
         model.eval()
 
-        class_accu.reset()
+        class_accu_reg.reset()
+        class_accu_sum.reset()
 
         for i, (data) in enumerate(test_loader):  # test
 
@@ -343,12 +351,12 @@ def main():
             inputs = inputs.view(sizes[0], sizes[1]*sizes[2], sizes[3])  # Collapse feature dimension
             #print("INPUTS SIZE: ====>>>>>\t", inputs.size())
             start = 0
-            duration = 64+4*8
+            duration = 100
             #start = random.randint(0, int((inputs.size(3)-1)*(1-args.sample_proportion)))
             #duration = int((inputs.size(3))*(args.sample_proportion))
             #start = random.randint(0, (inputs.size(3)-1)-utterance_sequence_length)
             #duration = utterance_sequence_length
-            utterances = inputs[...,start:start+duration] # <<<<<<====== THIS IS THE MOST IMPORTANT CODE OF THE PROJECT
+            utterances = inputs#[...,start:start+duration] # <<<<<<====== THIS IS THE MOST IMPORTANT CODE OF THE PROJECT
             #print("UTTERS SIZE: ====>>>>>\t", utterances.size(), start, start+duration)
             out = model(utterances)
             #print("OUTPUT SIZE: ====>>>>>\t", out.size())
@@ -368,11 +376,11 @@ def main():
             #print(softmax_output_alt[0][0])
             ########
 
-            if args.loss_type == "reg":
-                processed_out = out[round(out.size(0)/2)]; processed_speaker_labels = speaker_labels
-            elif args.loss_type == "sum" or "full":
-                #processed_out = torch.sum(out[loss_begin:loss_end], 0); processed_speaker_labels = speaker_labels
-                processed_out = torch.sum(out, 0); processed_speaker_labels = speaker_labels
+            #if args.loss_type == "reg":
+            #    processed_out = out[round(out.size(0)/2)]; processed_speaker_labels = speaker_labels
+            #elif args.loss_type == "sum" or "full":
+            #    #processed_out = torch.sum(out[loss_begin:loss_end], 0); processed_speaker_labels = speaker_labels
+            #    processed_out = torch.sum(out, 0); processed_speaker_labels = speaker_labels
             #elif args.loss_type == "full":
             #    #processed_out = out.contiguous()[loss_begin:loss_end].view(-1,48); processed_speaker_labels = speaker_labels.repeat(out.size(0),1)[loss_begin:loss_end].view(-1) #speaker_labels = speaker_labels.expand(20, out.size(0))
             #    processed_out = out.contiguous().view(-1, 48); processed_speaker_labels = speaker_labels.repeat(out.size(0),1).view(-1)  # speaker_labels = speaker_labels.expand(20, out.size(0))
@@ -380,24 +388,28 @@ def main():
             #print("PROC OUTPUT: ====>>>>>\t" + str(processed_out.size()))
             #print("PROC LABELS: ====>>>>>\t" + str(processed_speaker_labels.size()))
 
-            #class_accu.add(out[round(out.size(0)/2)].data, speaker_labels.data)
-            class_accu.add(processed_out.data, processed_speaker_labels.data)
+            class_accu_reg.add(out[round(out.size(0)/2)].data, speaker_labels.data)
+            class_accu_sum.add(torch.sum(out, 0).data, speaker_labels.data)
+            #class_accu_reg.add(processed_out.data, processed_speaker_labels.data)
 
             print('Validation Summary Epoch: [{0}]\t'
-                  'CAR {car:.3f}\t'
-                  .format(epoch + 1, car=class_accu.value()[0]))
+                  'CARR {carr:.2f}\t'
+                  'CARS {cars:.2f}\t'
+                  .format(epoch + 1, carr=class_accu_reg.value()[0], cars=class_accu_sum.value()[0]))
 
             if args.cuda:
                 torch.cuda.synchronize()
 
             del out
 
-        print("\nCURRENT EPOCH TEST RESULTS:\t", class_accu.value()[0])
-        if (best_test_accu < class_accu.value()[0]): best_test_accu = class_accu.value()[0]
+        print("\nCURRENT EPOCH TEST RESULTS:\t", class_accu_reg.value()[0], "\t", class_accu_sum.value()[0], "\n")
+
+        if (best_test_accu_reg < class_accu_reg.value()[0]): best_test_accu_reg = class_accu_reg.value()[0]
+        if (best_test_accu_sum < class_accu_sum.value()[0]): best_test_accu_sum = class_accu_sum.value()[0]
 
         print("\nBEST AVERAGE LOSS:\t\t", best_avg_loss)
-        print("\nBEST EPOCH TRAINING RESULTS:\t", best_train_accu)
-        print("\nBEST EPOCH TEST RESULTS:\t", best_test_accu)
+        print("\nBEST EPOCH TRAINING RESULTS:\t", best_train_accu_reg, "\t", best_train_accu_sum)
+        print("\nBEST EPOCH TEST RESULTS:\t", best_test_accu_reg, "\t", best_test_accu_sum)
         print("\nEPOCHS 70%, 90%, 95%, 99%:\t", epoch_70, "\t", epoch_90, "\t", epoch_95, "\t", epoch_99, "\n")
 
         torch.save(DeepSpeech.serialize(model, optimizer=optimizer, epoch=epoch), args.model_path)
