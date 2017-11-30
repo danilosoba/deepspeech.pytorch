@@ -152,8 +152,9 @@ def main():
 
     loss_begin = round(args.crop_begin / (10 * args.stride))
     loss_end = -round(args.crop_end / (10 * args.stride)) or None
-    #print("LOSS BEGIN:", loss_begin)
-    #print("LOSS END:", loss_end)
+    gap = loss_begin
+    print("LOSS BEGIN:", loss_begin)
+    print("LOSS END:", loss_end)
 
     if args.cuda:
         model = torch.nn.DataParallel(model).cuda()
@@ -236,18 +237,43 @@ def main():
             #print(out[-1].size())
 
             class_accu_reg.add(out[round(out.size(0)/2)].data, speaker_labels.data)
-            class_accu_sum.add(torch.sum(out, 0).data, speaker_labels.data)
+            class_accu_sum.add(torch.sum(out[loss_begin:loss_end], 0).data, speaker_labels.data)
             #class_accu_reg.add(processed_out.data, processed_speaker_labels.data)
 
             if args.loss_type == "reg":
-                processed_out = out[round(out.size(0)/2)]; processed_speaker_labels = speaker_labels
+                processed_out = out[round(out.size(0)/2)]
+                processed_speaker_labels = speaker_labels
+            if args.loss_type == "mult":
+                #indices = torch.LongTensor([0,2])
+                mult = (round(out.size(0)/4),round(out.size(0)/2),round(3*out.size(0)/4))
+                processed_out = out.contiguous()[mult,...].view(-1,48)
+                processed_speaker_labels = speaker_labels.repeat(out.size(0),1)[mult,...].view(-1)
+                #processed_out = out.contiguous()[(round(out.size(0)/4),round(out.size(0)/2),round(3*out.size(0)/4)),...].view(-1,48)
+                #processed_speaker_labels = speaker_labels.repeat(out.size(0),1)[(round(out.size(0)/4),round(out.size(0)/2),round(3*out.size(0)/4)),...].view(-1)
+                #processed_out = out.contiguous()[(loss_begin,round(out.size(0)/2),loss_end),...].view(-1,48)
+                #processed_speaker_labels = speaker_labels.repeat(out.size(0),1)[(loss_begin,round(out.size(0)/2),loss_end),...].view(-1)
+                ##speaker_labels = speaker_labels.expand(20, out.size(0))
             elif args.loss_type == "sum":
-                #processed_out = torch.sum(out[loss_begin:loss_end], 0); processed_speaker_labels = speaker_labels
-                processed_out = torch.sum(out, 0); processed_speaker_labels = speaker_labels
+                sum_begin = round(out.size(0)/2)-round(out.size(0)/4)
+                sum_end = round(out.size(0)/2)+round(out.size(0)/4)
+                processed_out = torch.sum(out[sum_begin:sum_end], 0)
+                processed_speaker_labels = speaker_labels
+                #processed_out = torch.sum(out[loss_begin:loss_end], 0)
+                #processed_speaker_labels = speaker_labels
+                #processed_out = torch.sum(out, 0)
+                #processed_speaker_labels = speaker_labels
             elif args.loss_type == "full":
-                #processed_out = out.contiguous()[loss_begin:loss_end].view(-1,48); processed_speaker_labels = speaker_labels.repeat(out.size(0),1)[loss_begin:loss_end].view(-1) #speaker_labels = speaker_labels.expand(20, out.size(0))
-                processed_out = out.contiguous().view(-1, 48); processed_speaker_labels = speaker_labels.repeat(out.size(0),1).view(-1)  # speaker_labels = speaker_labels.expand(20, out.size(0))
-            #print("OUT: " + str(out.size()), "SPEAKER LABELS:" + str(speaker_labels.size()))
+                full_begin = round(out.size(0)/2)-round(out.size(0)/4)
+                full_end = round(out.size(0)/2)+round(out.size(0)/4)
+                processed_out = out.contiguous()[full_begin:full_end].view(-1,48)
+                processed_speaker_labels = speaker_labels.repeat(out.size(0),1)[full_begin:full_end].view(-1)
+                ##speaker_labels = speaker_labels.expand(20, out.size(0))
+                #processed_out = out.contiguous()[loss_begin:loss_end].view(-1,48)
+                #processed_speaker_labels = speaker_labels.repeat(out.size(0),1)[loss_begin:loss_end].view(-1)
+                ##speaker_labels = speaker_labels.expand(20, out.size(0))
+                #processed_out = out.contiguous().view(-1, 48)
+                #processed_speaker_labels = speaker_labels.repeat(out.size(0),1).view(-1)
+                ##speaker_labels = speaker_labels.expand(20, out.size(0))
             #print("PROC OUTPUT: ====>>>>>\t" + str(processed_out.size()))
             #print("PROC LABELS: ====>>>>>\t" + str(processed_speaker_labels.size()))
 
@@ -350,8 +376,8 @@ def main():
             sizes = inputs.size()
             inputs = inputs.view(sizes[0], sizes[1]*sizes[2], sizes[3])  # Collapse feature dimension
             #print("INPUTS SIZE: ====>>>>>\t", inputs.size())
-            start = 0
-            duration = 100
+            #start = round(inputs.size(2)/2)-40
+            #duration = 80
             #start = random.randint(0, int((inputs.size(3)-1)*(1-args.sample_proportion)))
             #duration = int((inputs.size(3))*(args.sample_proportion))
             #start = random.randint(0, (inputs.size(3)-1)-utterance_sequence_length)
@@ -389,7 +415,7 @@ def main():
             #print("PROC LABELS: ====>>>>>\t" + str(processed_speaker_labels.size()))
 
             class_accu_reg.add(out[round(out.size(0)/2)].data, speaker_labels.data)
-            class_accu_sum.add(torch.sum(out, 0).data, speaker_labels.data)
+            class_accu_sum.add(torch.sum(out[loss_begin:loss_end], 0).data, speaker_labels.data)
             #class_accu_reg.add(processed_out.data, processed_speaker_labels.data)
 
             print('Validation Summary Epoch: [{0}]\t'

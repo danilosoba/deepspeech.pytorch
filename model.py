@@ -155,6 +155,10 @@ class DeepSpeech(nn.Module):
             nn.Linear(rnn_hidden_size, num_classes, bias=False)
         )
 
+        self.avg = nn.Sequential(
+            nn.AvgPool1d(4, stride=4),
+        )# <<<<==== SOMETIMES GOOD SOMETIMES BAD!!!
+
         #fully_connected = nn.Sequential(
         #    nn.BatchNorm1d(4*cnn_features),
         #    nn.Linear(4*cnn_features, num_classes, bias=False)
@@ -174,6 +178,7 @@ class DeepSpeech(nn.Module):
             x = self.avgpool(x)
         x = x.transpose(1, 2).transpose(0, 1).contiguous()  # TxNxH
         x = self.rnns(x)
+        #x = self.avg(x)
         x = self.fc(x)
         x = x.transpose(0, 1)
         # identity in training mode, logsoftmax in eval mode
